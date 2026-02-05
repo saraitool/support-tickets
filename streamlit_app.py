@@ -1,175 +1,125 @@
-import datetime
-import random
-
-import altair as alt
-import numpy as np
-import pandas as pd
 import streamlit as st
 
-# Show app title and description.
-st.set_page_config(page_title="Support tickets", page_icon="🎫")
-st.title("🎫 Support tickets")
-st.write(
-    """
+# Configure page
+st.set_page_config(page_title="NodeSynth", page_icon="🔗", layout="wide")
 
-    Testing a change.
+# Header
+col1, col2 = st.columns([0.15, 0.85])
+with col1:
+    st.markdown("### 🔗 NodeSynth")
+with col2:
+    st.markdown("<div style='text-align: right; padding-top: 10px;'>Synthetic Data & Eval Prototype</div>", unsafe_allow_html=True)
 
-    This app shows how you can build an internal tool in Streamlit. Here, we are 
-    implementing a support ticket workflow. The user can create a ticket, edit 
-    existing tickets, and view some statistics.
-    """
-)
+st.divider()
 
-# Create a random Pandas dataframe with existing tickets.
-if "df" not in st.session_state:
+# Sidebar navigation
+with st.sidebar:
+    st.markdown("### Navigation")
+    st.markdown("""
+    - 🎯 **Concept** ← Active
+    - 🌳 Taxonomy
+    - 📊 Data
+    - ✓ Evaluate
+    - 📈 Analyze
+    """)
 
-    # Set seed for reproducibility.
-    np.random.seed(42)
+# Initialize session state for active view
+if "active_view" not in st.session_state:
+    st.session_state.active_view = None
 
-    # Make up some fake issue descriptions.
-    issue_descriptions = [
-        "Network connectivity issues in the office",
-        "Software application crashing on startup",
-        "Printer not responding to print commands",
-        "Email server downtime",
-        "Data backup failure",
-        "Login authentication problems",
-        "Website performance degradation",
-        "Security vulnerability identified",
-        "Hardware malfunction in the server room",
-        "Employee unable to access shared files",
-        "Database connection failure",
-        "Mobile application not syncing data",
-        "VoIP phone system issues",
-        "VPN connection problems for remote employees",
-        "System updates causing compatibility issues",
-        "File server running out of storage space",
-        "Intrusion detection system alerts",
-        "Inventory management system errors",
-        "Customer data not loading in CRM",
-        "Collaboration tool not sending notifications",
-    ]
+# Main layout: left sidebar (1/4) and right content (3/4)
+left_col, right_col = st.columns([1, 3])
 
-    # Generate the dataframe with 100 rows/tickets.
-    data = {
-        "ID": [f"TICKET-{i}" for i in range(1100, 1000, -1)],
-        "Issue": np.random.choice(issue_descriptions, size=100),
-        "Status": np.random.choice(["Open", "In Progress", "Closed"], size=100),
-        "Priority": np.random.choice(["High", "Medium", "Low"], size=100),
-        "Date Submitted": [
-            datetime.date(2023, 6, 1) + datetime.timedelta(days=random.randint(0, 182))
-            for _ in range(100)
-        ],
-    }
-    df = pd.DataFrame(data)
+# Left sidebar with buttons
+with left_col:
+    st.markdown("### Views")
+    if st.button("🎯 Concept", use_container_width=True, key="concept_btn"):
+        st.session_state.active_view = "concept"
 
-    # Save the dataframe in session state (a dictionary-like object that persists across
-    # page runs). This ensures our data is persisted when the app updates.
-    st.session_state.df = df
+# Right content area
+with right_col:
+    if st.session_state.active_view == "concept":
+        tab1 = st.tabs(["Concept"])[0]
+        with tab1:
+            st.markdown("## Configure Dataset")
+            st.markdown("Define the scope, constraints, and target context for your synthetic data generation.")
 
+            st.markdown("")
 
-# Show a section to add a new ticket.
-st.header("Add a ticket")
+            # Form layout
+            col1, col2 = st.columns([1, 1])
 
-# We're adding tickets via an `st.form` and some input widgets. If widgets are used
-# in a form, the app will only rerun once the submit button is pressed.
-with st.form("add_ticket_form"):
-    issue = st.text_area("Describe the issue")
-    priority = st.selectbox("Priority", ["High", "Medium", "Low"])
-    submitted = st.form_submit_button("Submit")
+            with col1:
+                st.markdown("### Target Concept")
+                target_concept = st.text_input(
+                    "Target Concept",
+                    value="Cultural Representation",
+                    label_visibility="collapsed",
+                    disabled=False
+                )
 
-if submitted:
-    # Make a dataframe for the new ticket and append it to the dataframe in session
-    # state.
-    recent_ticket_number = int(max(st.session_state.df.ID).split("-")[1])
-    today = datetime.datetime.now().strftime("%m-%d-%Y")
-    df_new = pd.DataFrame(
-        [
-            {
-                "ID": f"TICKET-{recent_ticket_number+1}",
-                "Issue": issue,
-                "Status": "Open",
-                "Priority": priority,
-                "Date Submitted": today,
-            }
-        ]
-    )
+            with col2:
+                pass
 
-    # Show a little success message.
-    st.write("Ticket submitted! Here are the ticket details:")
-    st.dataframe(df_new, use_container_width=True, hide_index=True)
-    st.session_state.df = pd.concat([df_new, st.session_state.df], axis=0)
+            st.markdown("### Description & Context")
+            description = st.text_area(
+                "Description & Context",
+                value="Depiction, portrayal, or symbolization of cultures, identities, and experiences",
+                height=100,
+                label_visibility="collapsed"
+            )
 
-# Show section to view and edit existing tickets in a table.
-st.header("Existing tickets")
-st.write(f"Number of tickets: `{len(st.session_state.df)}`")
+            st.markdown("")
 
-st.info(
-    "You can edit the tickets by double clicking on a cell. Note how the plots below "
-    "update automatically! You can also sort the table by clicking on the column headers.",
-    icon="✍️",
-)
+            # Two column layout for countries and languages
+            col1, col2 = st.columns([1, 1])
 
-# Show the tickets dataframe with `st.data_editor`. This lets the user edit the table
-# cells. The edited data is returned as a new dataframe.
-edited_df = st.data_editor(
-    st.session_state.df,
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Status": st.column_config.SelectboxColumn(
-            "Status",
-            help="Ticket status",
-            options=["Open", "In Progress", "Closed"],
-            required=True,
-        ),
-        "Priority": st.column_config.SelectboxColumn(
-            "Priority",
-            help="Priority",
-            options=["High", "Medium", "Low"],
-            required=True,
-        ),
-    },
-    # Disable editing the ID and Date Submitted columns.
-    disabled=["ID", "Date Submitted"],
-)
+            with col1:
+                st.markdown("### Target Countries")
+                target_countries = st.text_input(
+                    "Target Countries",
+                    placeholder="Enter countries...",
+                    label_visibility="collapsed"
+                )
+                st.markdown('<span style="color: #6366f1;">Global ✕</span>', unsafe_allow_html=True)
 
-# Show some metrics and charts about the ticket.
-st.header("Statistics")
+            with col2:
+                st.markdown("### Target Languages")
+                target_languages = st.text_input(
+                    "Target Languages",
+                    placeholder="Enter languages...",
+                    label_visibility="collapsed"
+                )
+                st.markdown('<span style="color: #6366f1;">English ✕</span>', unsafe_allow_html=True)
 
-# Show metrics side by side using `st.columns` and `st.metric`.
-col1, col2, col3 = st.columns(3)
-num_open_tickets = len(st.session_state.df[st.session_state.df.Status == "Open"])
-col1.metric(label="Number of open tickets", value=num_open_tickets, delta=10)
-col2.metric(label="First response time (hours)", value=5.2, delta=-1.5)
-col3.metric(label="Average resolution time (hours)", value=16, delta=2)
+            st.markdown("")
 
-# Show two Altair charts using `st.altair_chart`.
-st.write("")
-st.write("##### Ticket status per month")
-status_plot = (
-    alt.Chart(edited_df)
-    .mark_bar()
-    .encode(
-        x="month(Date Submitted):O",
-        y="count():Q",
-        xOffset="Status:N",
-        color="Status:N",
-    )
-    .configure_legend(
-        orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    )
-)
-st.altair_chart(status_plot, use_container_width=True, theme="streamlit")
+            # Use Case and Modality
+            col1, col2 = st.columns([1, 1])
 
-st.write("##### Current ticket priorities")
-priority_plot = (
-    alt.Chart(edited_df)
-    .mark_arc()
-    .encode(theta="count():Q", color="Priority:N")
-    .properties(height=300)
-    .configure_legend(
-        orient="bottom", titleFontSize=14, labelFontSize=14, titlePadding=5
-    )
-)
-st.altair_chart(priority_plot, use_container_width=True, theme="streamlit")
+            with col1:
+                st.markdown("### Use Case")
+                use_case = st.text_input(
+                    "Use Case",
+                    value="Advice seeking",
+                    label_visibility="collapsed"
+                )
+
+            with col2:
+                st.markdown("### Modality")
+                modality = st.text_input(
+                    "Modality",
+                    placeholder="Select modality...",
+                    label_visibility="collapsed"
+                )
+
+            st.markdown("")
+
+            # Generate Taxonomy button
+            st.button(
+                "Generate Taxonomy",
+                use_container_width=True,
+                type="primary"
+            )
+    else:
+        st.markdown("")
