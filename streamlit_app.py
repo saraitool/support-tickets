@@ -416,38 +416,181 @@ elif st.session_state.step == "Taxonomy":
             st.session_state.step = "Data"
             st.rerun()
             
-    # st.markdown('<div class="content-card">', unsafe_allow_html=True)        
-    with st.spinner("Rendering Knowledge Graph..."):
+    
+    # Tabs for Sankey and Structure
+    tab_sankey, tab_structure = st.tabs(["Sankey Diagram", "Taxonomy Structure"])
+    
+    with tab_sankey:
+        # st.markdown('<div class="content-card">', unsafe_allow_html=True)        
+        with st.spinner("Rendering Knowledge Graph..."):
+            if not st.session_state.demo_data.empty:
+                
+                # --- Configurable Dimensions ---
+                available_dims = ['level1', 'level2', 'level3', 'user_group', 'cleaned_Country', 'user_case', 'model_modality']
+                # Default matches the requested hierarchy: Domain -> L1 -> L2 -> L3 -> Use Cases -> User Groups
+                default_dims = ['level1', 'level2', 'level3', 'user_case', 'user_group']
+                
+                selected_dims = st.multiselect(
+                    "Visible Dimensions (Ordered)", 
+                    options=available_dims, 
+                    default=default_dims,
+                    help="Select and reorder dimensions to visualize in the Sankey diagram."
+                )
+                # Generate SVG content
+                svg_html = create_visualization(st.session_state.demo_data, selected_dims, context_countries=st.session_state.get('target_countries', ['Global']))
+                
+                # CSS for hover effects
+                st.markdown("""
+                <style>
+                .sankey-link { transition: stroke-opacity 0.3s, stroke 0.3s; stroke-opacity: 0.15; cursor: pointer; }
+                .sankey-link:hover { stroke-opacity: 0.8 !important; stroke: #818cf8 !important; }
+                .sankey-node { transition: stroke 0.3s; cursor: pointer; }
+                .sankey-node:hover { stroke: #6366f1 !important; stroke-width: 2px !important; }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                st.markdown(svg_html, unsafe_allow_html=True)
+            else:
+                st.error("No demographic data loaded. Ensure 'NodeSynth_Data_med_Full_Export.csv' is present.")
+        # st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab_structure:
         if not st.session_state.demo_data.empty:
+            df = st.session_state.demo_data
+            # Prepare data for tree view
+            # Hierarchy: level1 -> level2 -> level3
+            # We need to extract unique combinations
             
-            # --- Configurable Dimensions ---
-            available_dims = ['Domain', 'level1', 'level2', 'level3', 'user_group', 'cleaned_Country', 'user_case', 'model_modality']
-            # Default matches the requested hierarchy: Domain -> L1 -> L2 -> L3 -> Use Cases -> User Groups
-            default_dims = ['Domain', 'level1', 'level2', 'level3', 'user_case', 'user_group']
+            # Helper to clean list strings if needed, though they seem processed in create_visualization, here we work on raw demo_data or we should process it similarly?
+            # demo_data might have raw strings. Let's do a quick safe eval if needed or just use as is if they are strings.
+            # actually create_visualization does some processing. Let's do similar safe processing.
             
-            selected_dims = st.multiselect(
-                "Visible Dimensions (Ordered)", 
-                options=available_dims, 
-                default=default_dims,
-                help="Select and reorder dimensions to visualize in the Sankey diagram."
-            )
-            # Generate SVG content
-            svg_html = create_visualization(st.session_state.demo_data, selected_dims, context_countries=st.session_state.get('target_countries', ['Global']))
+            tree_df = df[['level1', 'level2', 'level3']].drop_duplicates().sort_values(['level1', 'level2', 'level3'])
             
-            # CSS for hover effects
+            # Handle list strings in level3 if present
+            # But wait, level3 might be a string representation of a list in the CSV? 
+            # In create_visualization: df_final2[col] = df_final2[col].apply(lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else x)
+            # We should probably do the same here to be safe and explode if it's a list.
+            
+            # Safe eval helper
+            def safe_eval_list(x):
+                if isinstance(x, str) and x.strip().startswith('['):
+                    try:
+                        return eval(x)
+                    except:
+                        return [x]
+                return x if isinstance(x, list) else [x]
+
+            # Apply processing
+            tree_df['level3'] = tree_df['level3'].apply(safe_eval_list)
+            tree_df = tree_df.explode('level3').drop_duplicates().sort_values(['level1', 'level2', 'level3'])
+            
+            # Grouping
+            l1_groups = tree_df.groupby('level1')
+            
+            # CSS for Tree View
             st.markdown("""
             <style>
-            .sankey-link { transition: stroke-opacity 0.3s, stroke 0.3s; stroke-opacity: 0.15; cursor: pointer; }
-            .sankey-link:hover { stroke-opacity: 0.8 !important; stroke: #818cf8 !important; }
-            .sankey-node { transition: stroke 0.3s; cursor: pointer; }
-            .sankey-node:hover { stroke: #6366f1 !important; stroke-width: 2px !important; }
+            /* L1 Styles - Purple */
+            details.tree-l1 > summary {
+                background-color: #f3e8ff; /* purple-100 */
+                color: #6b21a8; /* purple-800 */
+                padding: 10px;
+                border-radius: 8px;
+                margin-bottom: 5px;
+                font-weight: bold;
+                cursor: pointer;
+                list-style: none; /* Hide default triangle */
+                border: 1px solid #e9d5ff;
+            }
+            details.tree-l1 > summary::-webkit-details-marker { display: none; }
+            details.tree-l1[open] > summary {
+                background-color: #e9d5ff;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+                margin-bottom: 0;
+            }
+            details.tree-l1 > div.content {
+                border: 1px solid #e9d5ff;
+                border-top: none;
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
+                padding: 10px;
+                margin-bottom: 10px;
+                background-color: #faf5ff; /* purple-50 */
+            }
+
+            /* L2 Styles - Maroon/Pink */
+            details.tree-l2 > summary {
+                background-color: #fce7f3; /* pink-100 */
+                color: #9d174d; /* pink-800 */
+                padding: 8px;
+                border-radius: 6px;
+                margin-top: 5px;
+                margin-bottom: 5px;
+                font-weight: 600;
+                font-size: 0.95em;
+                cursor: pointer;
+                border: 1px solid #fbcfe8;
+            }
+             details.tree-l2[open] > summary {
+                margin-bottom: 0;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+            details.tree-l2 > div.content {
+                border: 1px solid #fbcfe8;
+                border-top: none;
+                border-bottom-left-radius: 6px;
+                border-bottom-right-radius: 6px;
+                padding: 8px;
+                margin-bottom: 8px;
+                background-color: #fdf2f8; /* pink-50 */
+            }
+
+            /* L3 Styles - Green */
+            .tree-l3 {
+                background-color: #dcfce7; /* green-100 */
+                color: #166534; /* green-800 */
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 0.9em;
+                margin-bottom: 4px;
+                display: inline-block;
+                margin-right: 4px;
+                border: 1px solid #bbf7d0;
+            }
+            
+            /* Icons */
+            .icon { margin-right: 5px; }
             </style>
             """, unsafe_allow_html=True)
+
+            html_content = []
+            html_content.append(f'<div class="tree-container">')
+            html_content.append(f'<div style="margin-bottom: 15px; font-weight: bold; color: #64748b;">{len(l1_groups)} Root Topics</div>')
             
-            st.markdown(svg_html, unsafe_allow_html=True)
+            for l1, l1_df in l1_groups:
+                html_content.append(f'<details class="tree-l1"><summary><span class="icon">🟣</span> {l1}</summary><div class="content">')
+                
+                l2_groups = l1_df.groupby('level2')
+                for l2, l2_df in l2_groups:
+                    html_content.append(f'<details class="tree-l2"><summary><span class="icon">🔴</span> {l2}</summary><div class="content">')
+                    
+                    l3_items = sorted(l2_df['level3'].unique())
+                    for l3 in l3_items:
+                        html_content.append(f'<span class="tree-l3"><span class="icon">🟢</span> {l3}</span>')
+                        
+                    html_content.append('</div></details>')
+                
+                html_content.append('</div></details>')
+            
+            html_content.append('</div>')
+            
+            st.markdown("".join(html_content), unsafe_allow_html=True)
+
         else:
-            st.error("No demographic data loaded. Ensure 'NodeSynth_Data_med_Full_Export.csv' is present.")
-    # st.markdown('</div>', unsafe_allow_html=True)
+             st.info("No data available to display structure.")
 
 elif st.session_state.step == "Data":
     st.markdown("""
