@@ -441,8 +441,8 @@ if st.session_state.step == "Concept":
 
 
 elif st.session_state.step == "Taxonomy":
-    st.markdown("""
-<div class="content-card">
+    # Header with Concept/Region info
+    st.markdown(f"""
 <div style="display:flex; justify-content:space-between; align-items:center;">
 <h2 style="margin-top:0; color: #0f172a; font-size: 1.5rem;">Refine Taxonomy</h2>
 <div style="font-size: 14px; background: #f1f5f9; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
