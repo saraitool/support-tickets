@@ -214,7 +214,6 @@ def render_sankey_svg(paths, col_nodes, columns_config):
     node_height = 24
     
     if not columns_config: return ""
-    
     col_spacing = (width - 2 * padding_x) / (len(columns_config) - 1) if len(columns_config) > 1 else 0
     
     svg_content = []
@@ -260,7 +259,7 @@ def render_sankey_svg(paths, col_nodes, columns_config):
         label = col_conf['label']
         x = i * col_spacing + padding_x
         nodes = col_nodes.get(col_id, [])
-        
+        print(label)
         # Header Box
         svg_content.append(f'<rect x="{x - node_width / 2}" y="10" width="{node_width}" height="30" rx="8" fill="#f1f5f9" stroke="#e2e8f0" />')
         svg_content.append(f'<text x="{x}" y="30" text-anchor="middle" font-family="\'Inter\', sans-serif" font-size="10" font-weight="900" fill="#334155" style="text-transform: uppercase; letter-spacing: 0.1em;">{label}</text>')
@@ -432,6 +431,7 @@ if st.session_state.step == "Concept":
                     df = pd.read_csv(csv_file)
                     df['level3'] = df['level3'].apply(lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else x)
                     st.session_state.demo_data = df
+
                 except FileNotFoundError:
                     st.error(f"Data file '{csv_file}' not found.")
                     st.stop()
