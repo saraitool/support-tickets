@@ -491,19 +491,42 @@ elif st.session_state.step == "Taxonomy":
             # CSS for Tree View
             st.markdown("""
             <style>
-            /* L1 Styles - Purple */
+            /* Base Details/Summary Styles */
+            details > summary {
+                list-style: none;
+                cursor: pointer;
+            }
+            details > summary::-webkit-details-marker { display: none; }
+
+            /* Tags (L1, L2, L3) */
+            .tag {
+                display: inline-block;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 0.75em;
+                font-weight: bold;
+                margin-right: 8px;
+                vertical-align: middle;
+                text-transform: uppercase;
+                min-width: 24px;
+                text-align: center;
+            }
+            .tag-l1 { background-color: #d8b4fe; color: #581c87; } /* darker purple for badge */
+            .tag-l2 { background-color: #f9a8d4; color: #831843; } /* darker pink for badge */
+            .tag-l3 { background-color: #86efac; color: #14532d; } /* darker green for badge */
+
+            /* L1 Styles - Purple Theme */
             details.tree-l1 > summary {
-                background-color: #f3e8ff; /* purple-100 */
-                color: #6b21a8; /* purple-800 */
+                background-color: #f3e8ff;
+                color: #6b21a8;
                 padding: 10px;
                 border-radius: 8px;
                 margin-bottom: 5px;
                 font-weight: bold;
-                cursor: pointer;
-                list-style: none; /* Hide default triangle */
                 border: 1px solid #e9d5ff;
+                display: flex;
+                align-items: center;
             }
-            details.tree-l1 > summary::-webkit-details-marker { display: none; }
             details.tree-l1[open] > summary {
                 background-color: #e9d5ff;
                 border-bottom-left-radius: 0;
@@ -517,21 +540,22 @@ elif st.session_state.step == "Taxonomy":
                 border-bottom-right-radius: 8px;
                 padding: 10px;
                 margin-bottom: 10px;
-                background-color: #faf5ff; /* purple-50 */
+                background-color: #faf5ff;
             }
 
-            /* L2 Styles - Maroon/Pink */
+            /* L2 Styles - Maroon/Pink Theme */
             details.tree-l2 > summary {
-                background-color: #fce7f3; /* pink-100 */
-                color: #9d174d; /* pink-800 */
+                background-color: #fce7f3;
+                color: #9d174d;
                 padding: 8px;
                 border-radius: 6px;
                 margin-top: 5px;
                 margin-bottom: 5px;
                 font-weight: 600;
                 font-size: 0.95em;
-                cursor: pointer;
                 border: 1px solid #fbcfe8;
+                display: flex;
+                align-items: center;
             }
              details.tree-l2[open] > summary {
                 margin-bottom: 0;
@@ -545,41 +569,53 @@ elif st.session_state.step == "Taxonomy":
                 border-bottom-right-radius: 6px;
                 padding: 8px;
                 margin-bottom: 8px;
-                background-color: #fdf2f8; /* pink-50 */
+                background-color: #fdf2f8;
             }
 
-            /* L3 Styles - Green */
+            /* L3 Styles - Green Theme */
             .tree-l3 {
-                background-color: #dcfce7; /* green-100 */
-                color: #166534; /* green-800 */
+                background-color: #dcfce7;
+                color: #166534;
                 padding: 4px 8px;
                 border-radius: 4px;
                 font-size: 0.9em;
                 margin-bottom: 4px;
-                display: inline-block;
+                display: inline-flex; /* Changed to flex for vertical align */
+                align-items: center;
                 margin-right: 4px;
                 border: 1px solid #bbf7d0;
             }
-            
             /* Icons */
-            .icon { margin-right: 5px; }
+            .chevron {
+                transition: transform 0.2s;
+                margin-right: 8px;
+                color: #64748b;
+                width: 16px;
+                height: 16px;
+            }
+            details[open] > summary .chevron {
+                transform: rotate(90deg);
+            }
             </style>
             """, unsafe_allow_html=True)
+
+            # Chevron SVG
+            chevron_svg = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
 
             html_content = []
             html_content.append(f'<div class="tree-container">')
             html_content.append(f'<div style="margin-bottom: 15px; font-weight: bold; color: #64748b;">{len(l1_groups)} Root Topics</div>')
             
             for l1, l1_df in l1_groups:
-                html_content.append(f'<details class="tree-l1"><summary><span class="icon">🟣</span> {l1}</summary><div class="content">')
+                html_content.append(f'<details class="tree-l1"><summary>{chevron_svg}<span class="tag tag-l1">L1</span> {l1}</summary><div class="content">')
                 
                 l2_groups = l1_df.groupby('level2')
                 for l2, l2_df in l2_groups:
-                    html_content.append(f'<details class="tree-l2"><summary><span class="icon">🔴</span> {l2}</summary><div class="content">')
+                    html_content.append(f'<details class="tree-l2"><summary>{chevron_svg}<span class="tag tag-l2">L2</span> {l2}</summary><div class="content">')
                     
                     l3_items = sorted(l2_df['level3'].unique())
                     for l3 in l3_items:
-                        html_content.append(f'<span class="tree-l3"><span class="icon">🟢</span> {l3}</span>')
+                        html_content.append(f'<span class="tree-l3"><span class="tag tag-l3">L3</span> {l3}</span>')
                         
                     html_content.append('</div></details>')
                 
