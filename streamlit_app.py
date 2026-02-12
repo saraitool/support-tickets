@@ -382,17 +382,60 @@ if st.session_state.step == "Concept":
 
         col1, col2 = st.columns(2)
         with col1:
-            st.text_input("Target Concept", value="Medical Advice")
+            # Concept Selection with Callback
+            def update_concept_settings():
+                concept = st.session_state.target_concept
+                if concept == "Medical Advice":
+                    st.session_state.description = "Patient specific health assessment focusing on nuanced guidance and symptom interpretation."
+                    st.session_state.use_case = "Advice seeking"
+                    st.session_state.modality = "text-to-text"
+                    st.session_state.target_countries = ["Global"]
+                elif concept == "Cultural Representation":
+                    st.session_state.description = "Depiction, portrayal, or symbolization of cultures, identities, and experiences"
+                    st.session_state.use_case = "Advice seeking"
+                    st.session_state.modality = "text-to-text"
+                    st.session_state.target_countries = ["Global"]
+
+            # Initialize state for these fields if not set
+            if 'description' not in st.session_state:
+                st.session_state.description = "Patient specific health assessment focusing on nuanced guidance and symptom interpretation."
+            if 'use_case' not in st.session_state:
+                st.session_state.use_case = "Advice seeking"
+            if 'modality' not in st.session_state:
+                st.session_state.modality = "text-to-text"
+
+            selected_concept = st.selectbox(
+                "Target Concept", 
+                ["Medical Advice", "Cultural Representation"], 
+                key="target_concept",
+                on_change=update_concept_settings
+            )
+            
             st.multiselect("Target Countries", ["Global", "USA", "UK", "Canada", "Australia", "Ghana", "Nigeria"], default=["Global"], key="target_countries")
-            st.text_input("Use Case", value="Advice seeking")
+            st.text_input("Use Case", key="use_case")
         with col2:
-            st.text_area("Description & Context", value="Patient specific health assessment focusing on nuanced guidance and symptom interpretation.", height=130)
-            st.selectbox("Modality", ["text-to-text", "text-to-image", "text-to-video"])
+            st.text_area("Description & Context", key="description", height=130)
+            st.selectbox("Modality", ["text-to-text", "text-to-image", "text-to-video"], key="modality")
             
         st.write("")
         if st.button("Generate Taxonomy", type="primary"):
             with st.spinner("Generating Taxonomy (Simulated)..."):
                 time.sleep(1)
+                
+                # Load Data based on Concept
+                if st.session_state.target_concept == "Medical Advice":
+                    csv_file = "NodeSynth_Data_med_Full_Export.csv"
+                else:
+                    csv_file = "NodeSynth_Data_Cultural_Full_Export.csv"
+                
+                try:
+                    df = pd.read_csv(csv_file)
+                    df['level3'] = df['level3'].apply(lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else x)
+                    st.session_state.demo_data = df
+                except FileNotFoundError:
+                    st.error(f"Data file '{csv_file}' not found.")
+                    st.stop()
+                
                 st.session_state.step = "Taxonomy"
                 st.rerun()
 
@@ -403,7 +446,7 @@ elif st.session_state.step == "Taxonomy":
 <div style="display:flex; justify-content:space-between; align-items:center;">
 <h2 style="margin-top:0; color: #0f172a; font-size: 1.5rem;">Refine Taxonomy</h2>
 <div style="font-size: 14px; background: #f1f5f9; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
-<b>Concept:</b> Medical Advice | <b>Regions:</b> Global
+<b>Concept:</b> {st.session_state.get('target_concept', 'Medical Advice')} | <b>Regions:</b> {', '.join(st.session_state.get('target_countries', ['Global']))}
 </div>
 </div>
 <p style="color: #64748b; margin-bottom: 1rem;">Review the generated Domain structure based on your configuration. Edit branches or proceed to synthesis.</p>
