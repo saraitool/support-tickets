@@ -500,22 +500,8 @@ elif st.session_state.step == "Taxonomy":
     with tab_structure:
         if not st.session_state.demo_data.empty:
             df = st.session_state.demo_data
-            # Prepare data for tree view
-            # Hierarchy: level1 -> level2 -> level3
-            # We need to extract unique combinations
             
-            # Helper to clean list strings if needed, though they seem processed in create_visualization, here we work on raw demo_data or we should process it similarly?
-            # demo_data might have raw strings. Let's do a quick safe eval if needed or just use as is if they are strings.
-            # actually create_visualization does some processing. Let's do similar safe processing.
-            
-            tree_df = df[['level1', 'level2', 'level3']].drop_duplicates().sort_values(['level1', 'level2', 'level3'])
-            
-            # Handle list strings in level3 if present
-            # But wait, level3 might be a string representation of a list in the CSV? 
-            # In create_visualization: df_final2[col] = df_final2[col].apply(lambda x: eval(x) if isinstance(x, str) and x.startswith('[') else x)
-            # We should probably do the same here to be safe and explode if it's a list.
-            
-            # Safe eval helper
+            # Helper to clean list strings if needed
             def safe_eval_list(x):
                 if isinstance(x, str) and x.strip().startswith('['):
                     try:
@@ -523,153 +509,110 @@ elif st.session_state.step == "Taxonomy":
                     except:
                         return [x]
                 return x if isinstance(x, list) else [x]
-
-            # Apply processing
+            
+            # Prepare data
+            tree_df = df[['level1', 'level2', 'level3']].drop_duplicates()
             tree_df['level3'] = tree_df['level3'].apply(safe_eval_list)
             tree_df = tree_df.explode('level3').drop_duplicates().sort_values(['level1', 'level2', 'level3'])
             
-            # Grouping
-            l1_groups = tree_df.groupby('level1')
+            # Container for the split view
+            st.markdown('<div class="content-card">', unsafe_allow_html=True)
+            col_tree, col_meta = st.columns([1, 1], gap="large")
             
-            # CSS for Tree View
-            st.markdown("""
-            <style>
-            /* Base Details/Summary Styles */
-            details > summary {
-                list-style: none;
-                cursor: pointer;
-            }
-            details > summary::-webkit-details-marker { display: none; }
-
-            /* Tags (L1, L2, L3) */
-            .tag {
-                display: inline-block;
-                padding: 2px 6px;
-                border-radius: 4px;
-                font-size: 0.75em;
-                font-weight: bold;
-                margin-right: 8px;
-                vertical-align: middle;
-                text-transform: uppercase;
-                min-width: 24px;
-                text-align: center;
-            }
-            .tag-l1 { background-color: #d8b4fe; color: #581c87; } /* darker purple for badge */
-            .tag-l2 { background-color: #f9a8d4; color: #831843; } /* darker pink for badge */
-            .tag-l3 { background-color: #86efac; color: #14532d; } /* darker green for badge */
-
-            /* L1 Styles - Purple Theme */
-            details.tree-l1 > summary {
-                background-color: #f3e8ff;
-                color: #6b21a8;
-                padding: 10px;
-                border-radius: 8px;
-                margin-bottom: 5px;
-                font-weight: bold;
-                border: 1px solid #e9d5ff;
-                display: flex;
-                align-items: center;
-            }
-            details.tree-l1[open] > summary {
-                background-color: #e9d5ff;
-                border-bottom-left-radius: 0;
-                border-bottom-right-radius: 0;
-                margin-bottom: 0;
-            }
-            details.tree-l1 > div.content {
-                border: 1px solid #e9d5ff;
-                border-top: none;
-                border-bottom-left-radius: 8px;
-                border-bottom-right-radius: 8px;
-                padding: 10px;
-                margin-bottom: 10px;
-                background-color: #faf5ff;
-            }
-
-            /* L2 Styles - Maroon/Pink Theme */
-            details.tree-l2 > summary {
-                background-color: #fce7f3;
-                color: #9d174d;
-                padding: 8px;
-                border-radius: 6px;
-                margin-top: 5px;
-                margin-bottom: 5px;
-                font-weight: 600;
-                font-size: 0.95em;
-                border: 1px solid #fbcfe8;
-                display: flex;
-                align-items: center;
-            }
-             details.tree-l2[open] > summary {
-                margin-bottom: 0;
-                border-bottom-left-radius: 0;
-                border-bottom-right-radius: 0;
-            }
-            details.tree-l2 > div.content {
-                border: 1px solid #fbcfe8;
-                border-top: none;
-                border-bottom-left-radius: 6px;
-                border-bottom-right-radius: 6px;
-                padding: 8px;
-                margin-bottom: 8px;
-                background-color: #fdf2f8;
-            }
-
-            /* L3 Styles - Green Theme */
-            .tree-l3 {
-                background-color: #dcfce7;
-                color: #166534;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 0.9em;
-                margin-bottom: 4px;
-                display: inline-flex; /* Changed to flex for vertical align */
-                align-items: center;
-                margin-right: 4px;
-                border: 1px solid #bbf7d0;
-            }
-            /* Icons */
-            .chevron {
-                transition: transform 0.2s;
-                margin-right: 8px;
-                color: #64748b;
-                width: 16px;
-                height: 16px;
-            }
-            details[open] > summary .chevron {
-                transform: rotate(90deg);
-            }
-            </style>
-            """, unsafe_allow_html=True)
-
-            # Chevron SVG
-            chevron_svg = '<svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>'
-
-            html_content = []
-            html_content.append(f'<div class="tree-container">')
-            html_content.append(f'<div style="margin-bottom: 15px; font-weight: bold; color: #64748b;">{len(l1_groups)} Root Topics</div>')
+            with col_tree:
+                st.markdown("### L1, L2, L3 Tree")
+                l1_groups = tree_df.groupby('level1')
+                for l1, l1_df in l1_groups:
+                    with st.expander(f"📁 **L1** {l1}"):
+                        l2_groups = l1_df.groupby('level2')
+                        for l2, l2_df in l2_groups:
+                            with st.expander(f"📂 **L2** {l2}"):
+                                l3_items = sorted(l2_df['level3'].unique())
+                                for l3 in l3_items:
+                                    # Use a button to set the selected L3 node
+                                    # If button is clicked, state is updated and app reruns
+                                    if st.button(f"🌿 **L3** {l3}", key=f"btn_{l1}_{l2}_{l3}", use_container_width=True):
+                                        st.session_state.selected_l3 = l3
             
-            for l1, l1_df in l1_groups:
-                html_content.append(f'<details class="tree-l1"><summary>{chevron_svg}<span class="tag tag-l1">L1</span> {l1}</summary><div class="content">')
-                
-                l2_groups = l1_df.groupby('level2')
-                for l2, l2_df in l2_groups:
-                    html_content.append(f'<details class="tree-l2"><summary>{chevron_svg}<span class="tag tag-l2">L2</span> {l2}</summary><div class="content">')
-                    
-                    l3_items = sorted(l2_df['level3'].unique())
-                    for l3 in l3_items:
-                        html_content.append(f'<span class="tree-l3"><span class="tag tag-l3">L3</span> {l3}</span>')
-                        
-                    html_content.append('</div></details>')
-                
-                html_content.append('</div></details>')
-            
-            html_content.append('</div>')
-            
-            st.markdown("".join(html_content), unsafe_allow_html=True)
+            with col_meta:
+                 st.markdown("### Metadata Details")
+                 st.markdown("<hr style='margin-top:0.5rem; margin-bottom:1.5rem;'/>", unsafe_allow_html=True)
+                 
+                 if 'selected_l3' not in st.session_state or not st.session_state.selected_l3:
+                     st.info("ℹ️ Metadata is available for L3 Leaf nodes. Click any L3 node in the tree to view its details.")
+                 else:
+                     # Find data for the selected L3
+                     # We search in the exploded demo_data to find matching row
+                     df_search = df.copy()
+                     df_search['level3_list'] = df_search['level3'].apply(safe_eval_list)
+                     df_exploded = df_search.explode('level3_list')
+                     match = df_exploded[df_exploded['level3_list'] == st.session_state.selected_l3]
+                     
+                     if not match.empty:
+                         node_data = match.iloc[0]
+                         
+                         st.markdown(f"#### {st.session_state.selected_l3}")
+                         
+                         # Geographic Context
+                         st.markdown("🌐 **GEOGRAPHIC CONTEXT**")
+                         # Prefer extracted_Country, fallback to cleaned_Country, fallback to default
+                         country_val = node_data.get('extracted_Country', node_data.get('cleaned_Country', 'Global'))
+                         # Format as blue pill if it's string, handle lists
+                         if isinstance(country_val, str) and country_val.startswith('['):
+                             try: country_val = eval(country_val)
+                             except: pass
+                         if isinstance(country_val, list):
+                             pills = "".join([f"<span style='background:#eff6ff; color:#2563eb; padding:4px 12px; border-radius:16px; font-size:0.85em; margin-right:8px; display:inline-block; margin-bottom:8px;'>{c}</span>" for c in country_val])
+                             st.markdown(pills, unsafe_allow_html=True)
+                         else:
+                             st.markdown(f"<span style='background:#eff6ff; color:#2563eb; padding:4px 12px; border-radius:16px; font-size:0.85em; display:inline-block;'>{country_val}</span>", unsafe_allow_html=True)
+                         
+                         st.markdown("<br>", unsafe_allow_html=True)
+                         
+                         # Demographics
+                         st.markdown("👥 **DEMOGRAPHICS**")
+                         # Use extracted_Demographics or user_group
+                         demo_val = node_data.get('extracted_Demographics', node_data.get('user_group', 'N/A'))
+                         if isinstance(demo_val, str) and demo_val.startswith('['):
+                             try: demo_val = eval(demo_val)
+                             except: pass
+                         if isinstance(demo_val, list):
+                              pills = "".join([f"<span style='background:#fdf2f8; color:#db2777; padding:4px 12px; border-radius:16px; font-size:0.85em; margin-right:8px; display:inline-block; margin-bottom:8px;'>{d}</span>" for d in demo_val])
+                              st.markdown(pills, unsafe_allow_html=True)
+                         else:
+                             st.markdown(f"<span style='background:#fdf2f8; color:#db2777; padding:4px 12px; border-radius:16px; font-size:0.85em; display:inline-block;'>{demo_val}</span>", unsafe_allow_html=True)
 
-        else:
-             st.info("No data available to display structure.")
+                         st.markdown("<br>", unsafe_allow_html=True)
+                         
+                         # Use Cases
+                         st.markdown("📋 **USE CASES**")
+                         use_case = node_data.get('user_case', 'N/A')
+                         st.markdown(f"<div style='border-left: 3px solid #cbd5e1; padding-left: 12px; color: #475569;'>{use_case}</div>", unsafe_allow_html=True)
+                         
+                         st.markdown("<br>", unsafe_allow_html=True)
+
+                         # Research Citations
+                         st.markdown("📖 **RESEARCH CITATIONS**")
+                         url_val = node_data.get('url', '')
+                         if isinstance(url_val, str) and url_val.startswith('['):
+                             try: url_val = eval(url_val)
+                             except: pass
+                             
+                         if isinstance(url_val, list):
+                             for idx, u in enumerate(url_val):
+                                 st.markdown(f"- [{u[:60]}...]({u})")
+                         elif isinstance(url_val, str) and url_val:
+                             st.markdown(f"- [{url_val[:60]}...]({url_val})")
+                         else:
+                              # fallback paper content
+                              paper = node_data.get('paper_content', '')
+                              if paper:
+                                  st.info("Citations available in internal knowledge source.")
+                              else:
+                                  st.write("No citations available.")
+                     else:
+                         st.warning("Data not found for this node.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.step == "Data":
     st.markdown("""
