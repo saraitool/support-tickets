@@ -6,14 +6,8 @@ A simple Streamlit app showing an internal tool that lets you create, manage, an
 
 ### How to run it on your own machine
 
-1. Install the requirements
+python3 -m venv venv
+source venv/bin/activate
+(venv) pip install -r requirements.txt
+(venv) streamlit run streamlit_app.py
 
-   ```
-   $ pip install -r requirements.txt
-   ```
-
-2. Run the app
-
-   ```
-   $ streamlit run streamlit_app.py
-   ```
