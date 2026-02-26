@@ -97,6 +97,9 @@ st.markdown("""
         min-width: 20rem !important;
         max-width: 20rem !important;
         width: 20rem !important;
+        display: block !important;
+        visibility: visible !important;
+        transform: none !important; /* Prevents Streamlit from sliding it off-screen */
     }
     
     /* Navigation Buttons (Inactive) */
