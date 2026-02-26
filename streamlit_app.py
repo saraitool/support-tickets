@@ -89,9 +89,56 @@ st.markdown("""
     div[data-testid="stSidebarNav"] {
         display: none;
     }
+    
+    /* Sidebar Styling: Distinct background and border */
     [data-testid="stSidebar"] {
+        background-color: #1e293b !important; /* Dark slate background */
+        border-right: 1px solid #334155 !important;
+        min-width: 20rem !important;
+        max-width: 20rem !important;
+        width: 20rem !important;
+    }
+    
+    /* Navigation Buttons (Inactive) */
+    [data-testid="stSidebar"] .stButton > button {
         background-color: transparent;
-        border-right: none;
+        color: #f1f5f9;
+        text-align: left;
+        display: flex;
+        justify-content: flex-start;
+        border: 1px solid #475569; /* Added distinct default border */
+        border-radius: 8px; /* Added rounded corners for button feel */
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background-color: #334155;
+        border-color: #64748b; /* Slightly lighter border on hover */
+        color: white;
+    }
+    
+    /* Navigation Buttons (Active/Primary) */
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] {
+        background-color: #4f46e5;
+        color: white;
+        border: 1px solid #4338ca;
+    }
+    [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+        background-color: #4338ca;
+    }
+    
+    /* Sidebar Header Text Styling */
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
+        color: #94a3b8 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+        color: #f8fafc !important;
+    }
+
+    /* Completely hide sidebar collapse toggles and resizer */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarResizer"] {
+        display: none !important;
+        visibility: hidden !important;
     }
     
     /* Inputs */
@@ -273,7 +320,7 @@ def render_sankey_svg(paths, col_nodes, columns_config):
             
             node_group = f'<g transform="translate({x - node_width / 2}, {y - node_height / 2})">'
             node_group += f'<rect width="{node_width}" height="{node_height}" rx="4" fill="white" stroke="#e2e8f0" stroke-width="1" class="sankey-node" />'
-            node_group += f'<text x="{node_width / 2}" y="{node_height / 2 + 3}" text-anchor="middle" font-family="\'Inter\', sans-serif" font-size="8" font-weight="700" fill="#475569" style="pointer-events: none;">{display_name}</text>'
+            node_group += f'<text x="{node_width / 2}" y="{node_height / 2 + 4}" text-anchor="middle" font-family="\'Inter\', sans-serif" font-size="12" font-weight="700" fill="#475569" style="pointer-events: none;">{display_name}</text>'
             node_group += f'<title>{node_name}</title>'
             node_group += '</g>'
             svg_content.append(node_group)
@@ -531,8 +578,30 @@ elif st.session_state.step == "Taxonomy":
                                 for l3 in l3_items:
                                     # Use a button to set the selected L3 node
                                     # If button is clicked, state is updated and app reruns
-                                    if st.button(f"🌿 **L3** {l3}", key=f"btn_{l1}_{l2}_{l3}", use_container_width=True):
+                                    if st.button(f"👉 **L3** {l3}", key=f"btn_{l1}_{l2}_{l3}", use_container_width=True):
                                         st.session_state.selected_l3 = l3
+            
+            # CSS specifically for the L3 buttons to make them look clickable
+            st.markdown("""
+            <style>
+            /* Target buttons inside expanders (which are our L3 buttons) */
+            div[data-testid="stExpanderDetails"] button {
+                border: 1px solid #cbd5e1 !important;
+                background-color: #f8fafc !important;
+                color: #334155 !important;
+                border-radius: 6px !important;
+                margin-top: 4px !important;
+                margin-bottom: 4px !important;
+                text-align: left !important;
+                box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+            }
+            div[data-testid="stExpanderDetails"] button:hover {
+                border-color: #4f46e5 !important;
+                background-color: #eef2ff !important;
+                color: #4f46e5 !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
             
             with col_meta:
                  st.markdown("### Metadata Details")
