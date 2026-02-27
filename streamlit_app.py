@@ -105,24 +105,33 @@ st.markdown("""
     /* Navigation Buttons (Inactive) */
     [data-testid="stSidebar"] .stButton > button {
         background-color: transparent;
-        color: #f1f5f9;
+        color: white !important;
         text-align: left;
         display: flex;
         justify-content: flex-start;
         border: 1px solid #475569; /* Added distinct default border */
         border-radius: 8px; /* Added rounded corners for button feel */
     }
+    [data-testid="stSidebar"] .stButton > button p {
+        font-size: 1.1rem !important; /* Make text larger */
+        color: white !important;
+    }
+    
     [data-testid="stSidebar"] .stButton > button:hover {
         background-color: #334155;
         border-color: #64748b; /* Slightly lighter border on hover */
-        color: white;
+        color: white !important;
     }
     
     /* Navigation Buttons (Active/Primary) */
     [data-testid="stSidebar"] .stButton > button[kind="primary"] {
         background-color: #4f46e5;
-        color: white;
+        color: white !important;
         border: 1px solid #4338ca;
+    }
+    [data-testid="stSidebar"] .stButton > button[kind="primary"] p {
+        font-size: 1.1rem !important; /* Make text larger */
+        color: white !important;
     }
     [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
         background-color: #4338ca;
