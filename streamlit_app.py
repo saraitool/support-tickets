@@ -696,24 +696,265 @@ elif st.session_state.step == "Taxonomy":
             st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.step == "Data":
-    st.markdown("""
-<div class="content-card">
-<div style="display:flex; justify-content:space-between; align-items:center;">
-<h2 style="margin-top:0; color: #0f172a; font-size: 1.5rem;">Synthetic Data Preview</h2>
+    df = st.session_state.demo_data
+    if not df.empty:
+        # --- Prepare working dataframe ---
+        df_work = df[['Domain', 'level1', 'level2', 'level3', 'user_group', 'extracted_Country', 'prompts']].drop_duplicates().copy()
+        df_work['extracted_Country'] = df_work['extracted_Country'].astype(str).str.strip("[]'\"").str.split("',").str[0].str.strip(" '\"")
+        df_work['level2'] = df_work['level2'].astype(str)
+        df_work['level3'] = df_work['level3'].astype(str)
+        df_work['level1'] = df_work['level1'].astype(str)
+        # Simulated complexity score based on prompt length
+        df_work['complexity'] = df_work['prompts'].astype(str).apply(lambda x: min(round(len(x) / 15, 1), 10.0))
+
+        # --- KPI Cards ---
+        n_prompts = len(df_work)
+        n_countries = df_work['extracted_Country'].nunique()
+        avg_complexity = round(df_work['complexity'].mean(), 1)
+        n_topics = df_work['level2'].nunique()
+
+        kpi_html = f"""
+<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Total Prompts</div>
+<div style="font-size: 2rem; font-weight: 900; color: #0f172a;">{n_prompts}</div>
 </div>
-<p style="color: #64748b; margin-bottom: 1rem;">Preview the generated cases for policy evaluation.</p>
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Global Diversity</div>
+<div style="font-size: 2rem; font-weight: 900; color: #4f46e5;">{n_countries} <span style="font-size: 0.75rem; font-weight: 500; opacity: 0.5;">Regions</span></div>
+</div>
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Linguistic Weight</div>
+<div style="font-size: 2rem; font-weight: 900; color: #ec4899;">{avg_complexity} <span style="font-size: 0.75rem; font-weight: 500; opacity: 0.5;">/10 avg</span></div>
+</div>
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Cluster Density</div>
+<div style="font-size: 2rem; font-weight: 900; color: #10b981;">{n_topics} <span style="font-size: 0.75rem; font-weight: 500; opacity: 0.5;">Nodes</span></div>
+</div>
+</div>
+"""
+        st.markdown(kpi_html, unsafe_allow_html=True)
+
+        # --- Tabbed Visualization Panel ---
+        tab_coverage, tab_linguistic, tab_tone, tab_nebula = st.tabs([
+            "📊 Coverage Map", "📈 Linguistic", "🎯 Tone Analysis", "✨ Semantic Nebula"
+        ])
+
+        with tab_coverage:
+            # Heatmap: Country x L2 Topic
+            countries = df_work['extracted_Country'].value_counts().head(10).index.tolist()
+            topics = df_work['level2'].value_counts().head(10).index.tolist()
+            matrix = []
+            for c in countries:
+                row = []
+                for t in topics:
+                    count = len(df_work[(df_work['extracted_Country'] == c) & (df_work['level2'] == t)])
+                    row.append(count)
+                matrix.append(row)
+
+            fig_heat = go.Figure(data=go.Heatmap(
+                z=matrix, x=topics, y=countries,
+                colorscale=[[0, '#ffffff'], [0.1, 'rgba(79,70,229,0.1)'], [0.5, 'rgba(79,70,229,0.5)'], [1, 'rgba(79,70,229,1)']],
+                text=[[v if v > 0 else '' for v in row] for row in matrix],
+                texttemplate="%{text}", textfont={"size": 11, "color": "white"},
+                hovertemplate='%{y} • %{x}: %{z} prompts<extra></extra>',
+                showscale=False
+            ))
+            fig_heat.update_layout(
+                title=dict(text="DIVERSITY COVERAGE MATRIX", font=dict(size=13, color='#334155')),
+                xaxis=dict(tickangle=-45, tickfont=dict(size=10, color='#64748b')),
+                yaxis=dict(tickfont=dict(size=11, color='#475569'), autorange='reversed'),
+                height=500, margin=dict(l=120, r=20, t=60, b=120),
+                paper_bgcolor='white', plot_bgcolor='white',
+                font_family="'Inter', sans-serif"
+            )
+            st.plotly_chart(fig_heat, use_container_width=True)
+
+        with tab_linguistic:
+            # Scatter: prompt length vs complexity
+            scatter_df = df_work.copy()
+            scatter_df['prompt_len'] = scatter_df['prompts'].astype(str).apply(len)
+            colors = scatter_df['complexity'].apply(
+                lambda x: '#ec4899' if x > 7 else ('#6366f1' if x > 4 else '#10b981')
+            )
+            fig_scatter = go.Figure(data=go.Scatter(
+                x=scatter_df['prompt_len'], y=scatter_df['complexity'],
+                mode='markers',
+                marker=dict(size=8, color=colors, opacity=0.7, line=dict(width=0.5, color='white')),
+                text=scatter_df['prompts'].astype(str).str[:80] + '...',
+                hovertemplate='<b>Length:</b> %{x} chars<br><b>Complexity:</b> %{y}/10<br><i>%{text}</i><extra></extra>'
+            ))
+            fig_scatter.update_layout(
+                title=dict(text="LINGUISTIC QUALITY", font=dict(size=13, color='#334155')),
+                xaxis=dict(title='Prompt Length (chars)', gridcolor='#e2e8f0'),
+                yaxis=dict(title='Complexity Score', range=[0, 10.5], gridcolor='#e2e8f0'),
+                height=500, paper_bgcolor='white', plot_bgcolor='#f8fafc',
+                font_family="'Inter', sans-serif",
+                margin=dict(l=60, r=20, t=60, b=60)
+            )
+            st.plotly_chart(fig_scatter, use_container_width=True)
+
+        with tab_tone:
+            # Radar: tone distribution from prompt keywords
+            tone_buckets = {'Formal': 0, 'Casual': 0, 'Curious': 0, 'Emotional': 0, 'Neutral': 0, 'Aggressive': 0}
+            for p in df_work['prompts'].astype(str):
+                pl = p.lower()
+                if any(w in pl for w in ['professional', 'academic', 'formal', 'research']):
+                    tone_buckets['Formal'] += 1
+                elif any(w in pl for w in ['casual', 'slang', 'friend']):
+                    tone_buckets['Casual'] += 1
+                elif any(w in pl for w in ['curious', 'question', 'wonder', 'how']):
+                    tone_buckets['Curious'] += 1
+                elif any(w in pl for w in ['sad', 'happy', 'angry', 'feel', 'emotion']):
+                    tone_buckets['Emotional'] += 1
+                elif any(w in pl for w in ['aggressive', 'hostile', 'demand']):
+                    tone_buckets['Aggressive'] += 1
+                else:
+                    tone_buckets['Neutral'] += 1
+
+            categories = list(tone_buckets.keys())
+            values = list(tone_buckets.values())
+            fig_radar = go.Figure(data=go.Scatterpolar(
+                r=values + [values[0]],
+                theta=categories + [categories[0]],
+                fill='toself',
+                fillcolor='rgba(99, 102, 241, 0.3)',
+                line=dict(color='#6366f1', width=3),
+                marker=dict(size=6, color='#6366f1')
+            ))
+            fig_radar.update_layout(
+                title=dict(text="TONE ANALYSIS", font=dict(size=13, color='#334155')),
+                polar=dict(
+                    radialaxis=dict(visible=True, showticklabels=False, gridcolor='#e2e8f0'),
+                    angularaxis=dict(tickfont=dict(size=12, color='#475569', weight='bold'), gridcolor='#e2e8f0')
+                ),
+                height=500, paper_bgcolor='white',
+                font_family="'Inter', sans-serif",
+                margin=dict(l=60, r=60, t=60, b=60),
+                showlegend=False
+            )
+            st.plotly_chart(fig_radar, use_container_width=True)
+
+        with tab_nebula:
+            # Semantic Nebula: random 2D scatter with topic clustering
+            np.random.seed(42)
+            nebula_df = df_work.copy()
+            unique_topics = nebula_df['level2'].unique()
+            topic_centers = {t: (np.random.uniform(15, 85), np.random.uniform(15, 85)) for t in unique_topics}
+            NEBULA_COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e', '#84cc16']
+            topic_color_map = {t: NEBULA_COLORS[i % len(NEBULA_COLORS)] for i, t in enumerate(unique_topics)}
+
+            nebula_df['x'] = nebula_df['level2'].map(lambda t: topic_centers[t][0] + np.random.normal(0, 8))
+            nebula_df['y'] = nebula_df['level2'].map(lambda t: topic_centers[t][1] + np.random.normal(0, 8))
+            nebula_df['color'] = nebula_df['level2'].map(topic_color_map)
+            nebula_df['size'] = nebula_df['complexity'] * 3
+
+            fig_nebula = go.Figure()
+            for topic in unique_topics:
+                sub = nebula_df[nebula_df['level2'] == topic]
+                fig_nebula.add_trace(go.Scatter(
+                    x=sub['x'], y=sub['y'], mode='markers', name=topic,
+                    marker=dict(size=sub['size'], color=topic_color_map[topic], opacity=0.7, line=dict(width=0)),
+                    text=sub['prompts'].astype(str).str[:60] + '...',
+                    hovertemplate='<b>%{text}</b><br>Topic: ' + topic + '<extra></extra>'
+                ))
+
+            fig_nebula.update_layout(
+                title=dict(text="SEMANTIC NEBULA", font=dict(size=14, color='#e2e8f0')),
+                xaxis=dict(visible=False, range=[0, 100]),
+                yaxis=dict(visible=False, range=[0, 100]),
+                height=550, paper_bgcolor='#0f172a', plot_bgcolor='#0f172a',
+                font=dict(family="'Inter', sans-serif", color='#94a3b8'),
+                margin=dict(l=20, r=20, t=60, b=20),
+                legend=dict(
+                    font=dict(size=10, color='#94a3b8'),
+                    bgcolor='rgba(0,0,0,0)',
+                    orientation='h', yanchor='bottom', y=1.02, xanchor='center', x=0.5
+                )
+            )
+            st.plotly_chart(fig_nebula, use_container_width=True)
+
+        # --- Ground Truth Inspector Table ---
+        st.markdown("""
+<div style="padding: 1rem 1.5rem; border-bottom: 1px solid #f1f5f9; background: rgba(248,250,252,0.3); display: flex; align-items: center; gap: 0.75rem;">
+<span style="color: #6366f1; font-size: 18px;">📋</span>
+<h4 style="margin: 0; font-size: 12px; font-weight: 900; color: #334155; text-transform: uppercase; letter-spacing: 0.1em;">Ground Truth Inspector</h4>
 </div>
 """, unsafe_allow_html=True)
-    
+        gt_df = df_work[['level2', 'level3', 'prompts', 'complexity', 'extracted_Country', 'Domain']].head(50)
+
+        # Classify tone for each prompt
+        def classify_tone(prompt):
+            pl = str(prompt).lower()
+            if any(w in pl for w in ['professional', 'academic', 'formal', 'research']):
+                return 'Formal'
+            elif any(w in pl for w in ['casual', 'slang', 'friend']):
+                return 'Casual'
+            elif any(w in pl for w in ['curious', 'question', 'wonder', 'how']):
+                return 'Curious'
+            elif any(w in pl for w in ['sad', 'happy', 'angry', 'feel', 'emotion']):
+                return 'Emotional'
+            elif any(w in pl for w in ['aggressive', 'hostile', 'demand']):
+                return 'Aggressive'
+            return 'Neutral'
+
+        gt_df = gt_df.copy()
+        gt_df['tone'] = gt_df['prompts'].apply(classify_tone)
+
+        tone_colors = {
+            'Formal': ('#eef2ff', '#4f46e5'), 'Casual': ('#f0fdf4', '#16a34a'),
+            'Curious': ('#fefce8', '#ca8a04'), 'Emotional': ('#fdf2f8', '#db2777'),
+            'Aggressive': ('#fef2f2', '#dc2626'), 'Neutral': ('#f8fafc', '#64748b')
+        }
+
+        # Build per-cell fill colors for tone column
+        tone_fill_colors = [tone_colors.get(t, ('#f8fafc','#64748b'))[0] for t in gt_df['tone']]
+        tone_font_colors = [tone_colors.get(t, ('#f8fafc','#64748b'))[1] for t in gt_df['tone']]
+
+        # Build column fill colors: each column needs a list of colors per row
+        n_rows = len(gt_df)
+        white_fill = ['white'] * n_rows
+
+        fig_table = go.Figure(data=[go.Table(
+            columnwidth=[150, 300, 80, 80, 150],
+            header=dict(
+                values=['<b>Node Path</b>', '<b>Synthetic Prompt</b>', '<b>Complexity</b>', '<b>Tone</b>', '<b>Context</b>'],
+                fill_color='#f8fafc', font=dict(size=10, color='#94a3b8', family="'Inter', sans-serif"),
+                align='left', height=40, line_color='#f1f5f9'
+            ),
+            cells=dict(
+                values=[
+                    [f"<b>{l2}</b><br>{l3}" for l2, l3 in zip(gt_df['level2'], gt_df['level3'])],
+                    [f"<i>\"{str(p)[:100]}...\"</i>" if len(str(p)) > 100 else f"<i>\"{p}\"</i>" for p in gt_df['prompts']],
+                    [f"<b>{c}/10</b>" for c in gt_df['complexity']],
+                    [f"<b>{t}</b>" for t in gt_df['tone']],
+                    [f"<b>{co}</b> · {d}" for co, d in zip(gt_df['extracted_Country'], gt_df['Domain'])]
+                ],
+                fill_color=[white_fill, white_fill, white_fill, tone_fill_colors, white_fill],
+                font=dict(size=11, family="'Inter', sans-serif", color=[
+                    ['#334155'] * n_rows,
+                    ['#475569'] * n_rows,
+                    ['#475569'] * n_rows,
+                    tone_font_colors,
+                    ['#4f46e5'] * n_rows
+                ]),
+                align='left', height=50,
+                line_color='#f1f5f9'
+            )
+        )])
+        fig_table.update_layout(
+            height=max(400, min(len(gt_df) * 55, 800)),
+            margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor='white'
+        )
+        st.plotly_chart(fig_table, use_container_width=True)
+
+    else:
+        st.warning("No data loaded. Ensure 'NodeSynth_Data_med_Full_Export.csv' is present.")
+
     if st.button("Next: Setup Evaluation", type="primary"):
         st.session_state.step = "Evaluate"
         st.rerun()
-        
-    st.markdown('<div class="content-card">', unsafe_allow_html=True)
-    if not st.session_state.demo_data.empty:
-        df_show = st.session_state.demo_data[['Domain', 'level1', 'level2', 'level3', 'user_group', 'extracted_Country', 'prompts']].drop_duplicates()
-        st.dataframe(df_show, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.step == "Evaluate":
     st.markdown("""
