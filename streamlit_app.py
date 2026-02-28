@@ -83,6 +83,11 @@ st.markdown("""
         padding: 2rem;
         box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
         margin-bottom: 2rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .content-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px 0 rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
     }
     
     /* Side navigation mimicking nodesynth-og */
@@ -176,6 +181,45 @@ st.markdown("""
     }
     .stButton > button[kind="primary"]:hover {
         background-color: #4338ca;
+    }
+
+    /* Custom Data tab visualization tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: #f8fafc;
+        padding: 0.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        padding: 0.75rem 1.5rem !important;
+        border-radius: 10px !important;
+        white-space: nowrap;
+        color: #94a3b8;
+        border: none !important;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        color: #6366f1;
+        background: #f1f0ff;
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+    }
+    .stTabs [aria-selected="true"] {
+        background: #eef2ff !important;
+        color: #4f46e5 !important;
+        box-shadow: 0 1px 3px rgba(79, 70, 229, 0.15);
+        border: 1px solid #c7d2fe !important;
+    }
+    /* Hide the default Streamlit tab underline indicator */
+    .stTabs [data-baseweb="tab-highlight"] {
+        display: none;
+    }
+    .stTabs [data-baseweb="tab-border"] {
+        display: none;
     }
 </style>
 """, unsafe_allow_html=True)
