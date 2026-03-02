@@ -442,6 +442,9 @@ def create_visualization(df_final, visible_dims=None, context_countries=None):
 if 'step' not in st.session_state:
     st.session_state.step = "Concept"
 
+if 'highest_step' not in st.session_state:
+    st.session_state.highest_step = 0
+
 if 'demo_data' not in st.session_state:
     try:
         st.session_state.demo_data = load_data("NodeSynth_Data_med_Full_Export.csv")
@@ -461,11 +464,12 @@ with st.sidebar:
     
     for i, step in enumerate(steps):
         is_active = st.session_state.step == step
+        is_disabled = i > st.session_state.highest_step
         # Create a style for active/inactive buttons
         if is_active:
-            st.button(f"{icons[i]} **{step}**", key=f"nav_{step}", use_container_width=True, type="primary")
+            st.button(f"{icons[i]} **{step}**", key=f"nav_{step}", use_container_width=True, type="primary", disabled=is_disabled)
         else:
-            st.button(f"{icons[i]} {step}", key=f"nav_{step}", use_container_width=True, on_click=set_step, args=(step,))
+            st.button(f"{icons[i]} {step}", key=f"nav_{step}", use_container_width=True, on_click=set_step, args=(step,), disabled=is_disabled)
 
     st.markdown("---")
     st.info("Demo Mode: Backend generation calls are bypassed. Displaying pre-baked data from NodeSynth output.")
@@ -539,6 +543,7 @@ if st.session_state.step == "Concept":
                     st.error(f"Data file '{csv_file}' not found.")
                     st.stop()
                 
+                st.session_state.highest_step = max(st.session_state.highest_step, 1)
                 st.session_state.step = "Taxonomy"
                 st.rerun()
 
@@ -559,6 +564,7 @@ elif st.session_state.step == "Taxonomy":
     if st.button("Next: Synthesize Data", type="primary"):
         with st.spinner("Synthesizing Synthetic Data Data Points (Simulated)..."):
             time.sleep(1)
+            st.session_state.highest_step = max(st.session_state.highest_step, 2)
             st.session_state.step = "Data"
             st.rerun()
             
@@ -997,6 +1003,7 @@ elif st.session_state.step == "Data":
         st.warning("No data loaded. Ensure 'NodeSynth_Data_med_Full_Export.csv' is present.")
 
     if st.button("Next: Setup Evaluation", type="primary"):
+        st.session_state.highest_step = max(st.session_state.highest_step, 3)
         st.session_state.step = "Evaluate"
         st.rerun()
 
@@ -1025,6 +1032,7 @@ elif st.session_state.step == "Evaluate":
     if st.button("Run Evaluation Analysis", type="primary"):
         with st.spinner("Running Judge Evaluation (Simulated)..."):
             time.sleep(1.5)
+            st.session_state.highest_step = max(st.session_state.highest_step, 4)
             st.session_state.step = "Analyze"
             st.rerun()
 
@@ -1042,5 +1050,6 @@ For this demo, imagine a beautiful matrix showing policy violation rates across 
 """, unsafe_allow_html=True)
      
     if st.button("New Session"):
+        st.session_state.highest_step = 0
         st.session_state.step = "Concept"
         st.rerun()
