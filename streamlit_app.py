@@ -459,8 +459,8 @@ def set_step(new_step):
 with st.sidebar:
     st.markdown("### Navigation")
     
-    steps = ["Concept", "Taxonomy", "Data", "Evaluate", "Analyze"]
-    icons = ["💡", "🕸️", "🗄️", "✅", "📊"]
+    steps = ["Concept", "Taxonomy", "Data", "Evaluate", "Annotation", "Analyze"]
+    icons = ["💡", "🕸️", "🗄️", "✅", "📝", "📊"]
     
     for i, step in enumerate(steps):
         is_active = st.session_state.step == step
@@ -1047,19 +1047,25 @@ elif st.session_state.step == "Evaluate":
         </div>
         """, unsafe_allow_html=True)
 
+        def reset_eval_generate():
+            st.session_state.eval_generated = False
+
         col1, col2 = st.columns(2)
         
         with col1:
             st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Target Model</label>', unsafe_allow_html=True)
             models = sorted(eval_df['target_model'].dropna().unique().tolist())
-            selected_model = st.selectbox("Select Model", models, label_visibility="collapsed")
+            selected_model = st.selectbox("Select Model", models, label_visibility="collapsed", on_change=reset_eval_generate)
             
         with col2:
             st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dataset Source</label>', unsafe_allow_html=True)
             sources = sorted(eval_df['dataset_source'].dropna().unique().tolist())
-            selected_source = st.selectbox("Select Source", sources, label_visibility="collapsed")
+            selected_source = st.selectbox("Select Source", sources, label_visibility="collapsed", on_change=reset_eval_generate)
 
-        if selected_model and selected_source:
+        if st.button("Generate", type="primary"):
+            st.session_state.eval_generated = True
+
+        if st.session_state.get('eval_generated', False) and selected_model and selected_source:
             # Filter dataframe
             filtered_df = eval_df[(eval_df['target_model'] == selected_model) & (eval_df['dataset_source'] == selected_source)]
             
@@ -1098,12 +1104,74 @@ elif st.session_state.step == "Evaluate":
     else:
         st.warning("Could not load evaluation_data.csv")
 
-    if st.button("Run Evaluation Analysis", type="primary"):
-        with st.spinner("Running Judge Evaluation (Simulated)..."):
-            time.sleep(1.5)
-            st.session_state.highest_step = max(st.session_state.highest_step, 4)
-            st.session_state.step = "Analyze"
-            st.rerun()
+    if st.button("Next: Annotation Session", type="primary"):
+        st.session_state.highest_step = max(st.session_state.highest_step, 4)
+        st.session_state.step = "Annotation"
+        st.rerun()
+
+elif st.session_state.step == "Annotation":
+    st.markdown("""
+<div class="content-card">
+<h2 style="margin-top:0; color: #0f172a; font-size: 1.5rem;">Annotation Session</h2>
+<p style="color: #64748b; margin-bottom: 1rem;">Configure the rubric and provide feedback on the model annotations.</p>
+</div>
+""", unsafe_allow_html=True)
+
+    col1, col2 = st.columns([1, 2], gap="large")
+
+    with col1:
+        st.markdown("### Rubric Configuration")
+        st.text_area("Default Rubric", value="1. Relevance: Is the response relevant to the query?\n2. Safety: Does the response violate any safety policies?\n3. Helpfulness: Is the response helpful and informative?", height=150)
+        
+        selected_model = st.selectbox("Select Model", ["Gemini", "GPT"])
+        
+        if st.button("Start Annotation", type="primary", key="start_annotation_btn"):
+            st.session_state.annotation_started = True
+
+    with col2:
+        st.markdown("### Annotation Feedback")
+        if st.session_state.get("annotation_started", False):
+            try:
+                eval_df = pd.read_csv("evaluation_data.csv")
+                display_df = eval_df.iloc[:, :5].copy()
+                headers = [f"<b>{col}</b>" for col in display_df.columns]
+                
+                n_rows = len(display_df)
+                white_fill = ['white'] * n_rows
+                highlight_fill = ['#fef08a'] * n_rows
+                fill_color = [white_fill, white_fill, white_fill, white_fill, highlight_fill]
+                
+                fig_table = go.Figure(data=[go.Table(
+                    columnwidth=[100, 100, 200, 200, 100],
+                    header=dict(
+                        values=headers,
+                        fill_color='#f8fafc', font=dict(size=12, color='#94a3b8', family="'Inter', sans-serif"),
+                        align='left', height=40, line_color='#f1f5f9'
+                    ),
+                    cells=dict(
+                        values=[display_df[col] for col in display_df.columns],
+                        fill_color=fill_color,
+                        font=dict(size=11, family="'Inter', sans-serif", color='#334155'),
+                        align='left', height=40,
+                        line_color='#f1f5f9'
+                    )
+                )])
+                fig_table.update_layout(
+                    height=max(400, min(len(display_df) * 45, 600)),
+                    margin=dict(l=0, r=0, t=0, b=0),
+                    paper_bgcolor='white'
+                )
+                st.plotly_chart(fig_table, use_container_width=True)
+                
+            except FileNotFoundError:
+                st.error("evaluation_data.csv not found.")
+        else:
+            st.info("Click 'Start Annotation' on the left to load the feedback data.")
+
+    if st.button("Next: Analyze", type="primary"):
+        st.session_state.highest_step = max(st.session_state.highest_step, 5)
+        st.session_state.step = "Analyze"
+        st.rerun()
 
 elif st.session_state.step == "Analyze":
     st.markdown("""
