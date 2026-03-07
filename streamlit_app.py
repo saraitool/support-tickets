@@ -1112,180 +1112,6 @@ elif st.session_state.step == "Evaluate":
 
         if not filtered_df.empty:
             n_total = len(filtered_df)
-            n_disclosure = len(filtered_df[filtered_df['label'] == 'Disclosure'])
-            n_fail = len(filtered_df[filtered_df['label'] == 'No disclosure'])
-            disclosure_rate = round(n_disclosure / n_total * 100, 1) if n_total > 0 else 0
-            failure_rate = round(n_fail / n_total * 100, 1) if n_total > 0 else 0
-
-            # --- KPI Cards ---
-            st.markdown("""
-<div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; margin-bottom: 1rem;">
-<div style="background-color: #dbeafe; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
-<span style="font-size: 1.5rem;">📊</span>
-</div>
-<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">2. Failure Rate Analytics</h3>
-</div>
-""", unsafe_allow_html=True)
-
-            fail_color = '#ef4444' if failure_rate > 30 else ('#f59e0b' if failure_rate > 10 else '#10b981')
-            pass_color = '#10b981' if disclosure_rate > 70 else ('#f59e0b' if disclosure_rate > 50 else '#ef4444')
-
-            kpi_html = f"""
-<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid {pass_color};">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Disclosure Rate</div>
-<div style="font-size: 2rem; font-weight: 900; color: {pass_color};">{disclosure_rate}%</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{n_disclosure} of {n_total} responses</div>
-</div>
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid {fail_color};">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Failure Rate</div>
-<div style="font-size: 2rem; font-weight: 900; color: {fail_color};">{failure_rate}%</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{n_fail} missing disclosures</div>
-</div>
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid #6366f1;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Total Evaluated</div>
-<div style="font-size: 2rem; font-weight: 900; color: #0f172a;">{n_total}</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{selected_model} · {selected_source}</div>
-</div>
-</div>
-"""
-            st.markdown(kpi_html, unsafe_allow_html=True)
-
-            # --- Charts Row ---
-            chart_col1, chart_col2 = st.columns([3, 2])
-
-            with chart_col1:
-                # Failure Rate by Model (all models, all sources combined)
-                model_stats = eval_df.groupby('target_model')['label'].apply(
-                    lambda x: round((x == 'No disclosure').sum() / len(x) * 100, 1)
-                ).reset_index()
-                model_stats.columns = ['Model', 'Failure Rate (%)']
-                model_stats = model_stats.sort_values('Model')
-
-                bar_colors = ['#f97316' if m == selected_model else '#cbd5e1' for m in model_stats['Model']]
-
-                fig_bar = go.Figure(data=go.Bar(
-                    x=model_stats['Model'], y=model_stats['Failure Rate (%)'],
-                    marker=dict(color=bar_colors, line=dict(width=0), cornerradius=6),
-                    text=[f"{v}%" for v in model_stats['Failure Rate (%)']],
-                    textposition='outside', textfont=dict(size=12, color='#334155', family="'Inter', sans-serif")
-                ))
-                fig_bar.update_layout(
-                    title=dict(text="OVERALL FAILURE RATE BY MODEL", font=dict(size=13, color='#334155', family="'Inter', sans-serif")),
-                    yaxis=dict(title='Failure Rate (%)', range=[0, 100], gridcolor='#f1f5f9'),
-                    xaxis=dict(title=''),
-                    height=350, margin=dict(l=50, r=20, t=60, b=40),
-                    paper_bgcolor='white', plot_bgcolor='white',
-                    font_family="'Inter', sans-serif",
-                    annotations=[dict(text="Unit: Percentage (%)", xref="paper", yref="paper",
-                                      x=1, y=1.08, showarrow=False, font=dict(size=10, color='#94a3b8'))]
-                )
-                st.plotly_chart(fig_bar, use_container_width=True)
-
-            with chart_col2:
-                # Metric Breakdown for current model
-                st.markdown(f"""
-<div style="padding: 1.5rem;">
-<h4 style="margin: 0 0 1.5rem 0; font-size: 14px; font-weight: 800; color: #334155;">Metric Breakdown (Current Model)</h4>
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-<div style="text-align: center;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Disclosure</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #10b981;">{disclosure_rate}%</div>
-</div>
-<div style="text-align: center;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">No Disclosure</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #ef4444;">{failure_rate}%</div>
-</div>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-                # Donut chart
-                fig_donut = go.Figure(data=[go.Pie(
-                    labels=['Disclosure', 'No Disclosure'],
-                    values=[n_disclosure, n_fail],
-                    hole=0.6, marker=dict(colors=['#10b981', '#ef4444']),
-                    textinfo='percent', textfont=dict(size=13, color='white', family="'Inter', sans-serif"),
-                    hovertemplate='%{label}: %{value} (%{percent})<extra></extra>'
-                )])
-                fig_donut.update_layout(
-                    height=220, margin=dict(l=20, r=20, t=10, b=10),
-                    paper_bgcolor='white', showlegend=False,
-                    annotations=[dict(text=f"<b>{n_total}</b><br>total", x=0.5, y=0.5,
-                                       font=dict(size=14, color='#334155', family="'Inter', sans-serif"),
-                                       showarrow=False)]
-                )
-                st.plotly_chart(fig_donut, use_container_width=True)
-
-            # --- Failure Distribution by Model x Source ---
-            st.markdown("""
-<div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; margin-bottom: 1rem;">
-<div style="background-color: #fef3c7; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
-<span style="font-size: 1.5rem;">⚠️</span>
-</div>
-<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">3. Error Analysis Breakdown</h3>
-</div>
-""", unsafe_allow_html=True)
-
-            # Grouped bar: failure rate by model x source
-            cross_stats = eval_df.groupby(['target_model', 'dataset_source', 'label']).size().reset_index(name='count')
-            cross_totals = eval_df.groupby(['target_model', 'dataset_source']).size().reset_index(name='total')
-            cross_stats = cross_stats.merge(cross_totals, on=['target_model', 'dataset_source'])
-            cross_stats['percentage'] = round(cross_stats['count'] / cross_stats['total'] * 100, 1)
-
-            fig_cross = px.bar(
-                cross_stats, x='dataset_source', y='percentage', color='label',
-                facet_col='target_model', facet_col_wrap=3,
-                color_discrete_map={'Disclosure': '#10b981', 'No disclosure': '#ef4444'},
-                labels={'dataset_source': 'Source', 'percentage': 'Percentage (%)'},
-                category_orders={
-                    'target_model': ['gemini', 'gpt', 'llama'],
-                    'dataset_source': ['sarai', 'human', 'syn']
-                },
-                barmode='group', height=400
-            )
-            fig_cross.update_layout(
-                paper_bgcolor='white', plot_bgcolor='white',
-                font_family="'Inter', sans-serif",
-                margin=dict(l=50, r=20, t=60, b=60),
-                legend_title_text='Label'
-            )
-            fig_cross.update_xaxes(matches=None, showticklabels=True, gridcolor='#f1f5f9')
-            fig_cross.update_yaxes(gridcolor='#f1f5f9', range=[0, 100])
-            fig_cross.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1].upper()))
-            st.plotly_chart(fig_cross, use_container_width=True)
-
-            # --- Failure Cases Table ---
-            fail_df = filtered_df[filtered_df['label'] == 'No disclosure'].head(50)
-            if not fail_df.empty:
-                st.markdown(f"""
-<div style="padding: 1rem 1.5rem; border-bottom: 1px solid #fecaca; background: #fef2f2; display: flex; align-items: center; gap: 0.75rem; border-radius: 8px 8px 0 0; margin-top: 1rem;">
-<span style="font-size: 18px;">🚨</span>
-<h4 style="margin: 0; font-size: 12px; font-weight: 900; color: #991b1b; text-transform: uppercase; letter-spacing: 0.1em;">Failure Cases — Missing Disclosures ({len(fail_df)} shown)</h4>
-</div>
-""", unsafe_allow_html=True)
-                fig_fail_table = go.Figure(data=[go.Table(
-                    columnwidth=[250, 400],
-                    header=dict(
-                        values=['<b>Query</b>', '<b>Response (No Disclosure)</b>'],
-                        fill_color='#fef2f2', font=dict(size=11, color='#991b1b', family="'Inter', sans-serif"),
-                        align='left', height=40, line_color='#fecaca'
-                    ),
-                    cells=dict(
-                        values=[
-                            [f"<i>{str(q)[:150]}{'...' if len(str(q)) > 150 else ''}</i>" for q in fail_df['query']],
-                            [f"{str(r)[:500]}{'...' if len(str(r)) > 500 else ''}" for r in fail_df['response']]
-                        ],
-                        fill_color=[['#fff5f5'] * len(fail_df), ['#fff5f5'] * len(fail_df)],
-                        font=dict(size=11, family="'Inter', sans-serif", color='#475569'),
-                        align='left', height=55, line_color='#fecaca'
-                    )
-                )])
-                fig_fail_table.update_layout(
-                    height=max(300, min(len(fail_df) * 60, 600)),
-                    margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='white'
-                )
-                st.plotly_chart(fig_fail_table, use_container_width=True)
 
             # --- Full Styled Data Table ---
             st.markdown(f"""
@@ -1293,7 +1119,7 @@ elif st.session_state.step == "Evaluate":
 <div style="background-color: #e0e7ff; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
 <span style="font-size: 1.5rem;">📋</span>
 </div>
-<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">4. Full Evaluation Data ({n_total} responses)</h3>
+<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">2. Evaluation Data ({n_total} responses)</h3>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1441,54 +1267,231 @@ elif st.session_state.step == "Analyze":
 <div style="background: rgba(255,255,255,0.2); border-radius: 12px; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
 <span style="font-size: 1.5rem;">📊</span>
 </div>
-<h2 style="margin: 0; color: white; font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Analysis Dashboard</h2>
+<h2 style="margin: 0; color: white; font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Error Analysis Dashboard</h2>
 </div>
-<p style="color: rgba(255,255,255,0.85); font-size: 1.05rem; max-width: 600px; margin: 0;">Comprehensive cross-dimensional evaluation results across countries, demographics, and taxonomy nodes.</p>
+<p style="color: rgba(255,255,255,0.85); font-size: 1.05rem; max-width: 600px; margin: 0;">Disclosure compliance analysis across models and data sources. Identify failure patterns and missing medical disclaimers.</p>
 </div>
 """, unsafe_allow_html=True)
 
-    # Preview metric cards
-    st.markdown("""
-<div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-top: 3px solid #6366f1;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Policy Violations</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #6366f1; margin-top: 4px;">—</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Awaiting analysis</div>
-</div>
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-top: 3px solid #10b981;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Safety Score</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #10b981; margin-top: 4px;">—</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Awaiting analysis</div>
-</div>
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-top: 3px solid #f59e0b;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Coverage</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #f59e0b; margin-top: 4px;">—</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Awaiting analysis</div>
-</div>
-<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-top: 3px solid #ec4899;">
-<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">Bias Index</div>
-<div style="font-size: 1.8rem; font-weight: 900; color: #ec4899; margin-top: 4px;">—</div>
-<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Awaiting analysis</div>
-</div>
-</div>
+    # Load evaluation data
+    @st.cache_data
+    def load_analyze_data():
+        try:
+            return pd.read_csv("evaluation_data.csv")
+        except FileNotFoundError:
+            return pd.DataFrame()
 
-<div class="content-card" style="text-align: center; padding: 4rem 2rem;">
-<div style="display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #ede9fe, #fce7f3); margin-bottom: 1.5rem;">
-<span style="font-size: 2rem;">🔬</span>
+    analyze_df = load_analyze_data()
+
+    if not analyze_df.empty:
+        # --- Filters ---
+        st.markdown("""
+<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+<div style="background-color: #ede9fe; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+<span style="font-size: 1.5rem;">🎯</span>
 </div>
-<h3 style="color: #0f172a; font-size: 1.25rem; font-weight: 800; margin: 0 0 0.75rem 0;">Evaluation Results Dashboard</h3>
-<p style="color: #94a3b8; font-size: 0.95rem; max-width: 500px; margin: 0 auto 1.5rem auto;">
-A comprehensive matrix showing policy violation rates across Countries, User Groups, and Taxonomy L3 Leafs will be available here.
-</p>
-<div style="display: inline-flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
-<span style="background: #ede9fe; color: #6366f1; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Country × Model</span>
-<span style="background: #fce7f3; color: #ec4899; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">Demographics × Source</span>
-<span style="background: #dbeafe; color: #3b82f6; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">L3 Leaf × Rubric</span>
+<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">1. Select Analysis Scope</h3>
+</div>
+""", unsafe_allow_html=True)
+
+        a_col1, a_col2 = st.columns(2)
+        with a_col1:
+            st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Target Model</label>', unsafe_allow_html=True)
+            a_models = ['All'] + sorted(analyze_df['target_model'].dropna().unique().tolist())
+            a_selected_model = st.radio("Model ", a_models, horizontal=True, label_visibility="collapsed")
+        with a_col2:
+            st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dataset Source</label>', unsafe_allow_html=True)
+            a_sources = ['All'] + sorted(analyze_df['dataset_source'].dropna().unique().tolist())
+            a_selected_source = st.radio("Source ", a_sources, horizontal=True, label_visibility="collapsed")
+
+        # Auto-filter
+        a_filtered = analyze_df.copy()
+        if a_selected_model != 'All':
+            a_filtered = a_filtered[a_filtered['target_model'] == a_selected_model]
+        if a_selected_source != 'All':
+            a_filtered = a_filtered[a_filtered['dataset_source'] == a_selected_source]
+
+        if not a_filtered.empty:
+            a_n_total = len(a_filtered)
+            a_n_disclosure = len(a_filtered[a_filtered['label'] == 'Disclosure'])
+            a_n_fail = len(a_filtered[a_filtered['label'] == 'No disclosure'])
+            a_disclosure_rate = round(a_n_disclosure / a_n_total * 100, 1) if a_n_total > 0 else 0
+            a_failure_rate = round(a_n_fail / a_n_total * 100, 1) if a_n_total > 0 else 0
+
+            # --- KPI Cards ---
+            st.markdown("""
+<div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 2rem; margin-bottom: 1rem;">
+<div style="background-color: #dbeafe; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+<span style="font-size: 1.5rem;">📈</span>
+</div>
+<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">2. Failure Rate Analytics</h3>
+</div>
+""", unsafe_allow_html=True)
+
+            a_fail_color = '#ef4444' if a_failure_rate > 30 else ('#f59e0b' if a_failure_rate > 10 else '#10b981')
+            a_pass_color = '#10b981' if a_disclosure_rate > 70 else ('#f59e0b' if a_disclosure_rate > 50 else '#ef4444')
+
+            st.markdown(f"""
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid {a_pass_color};">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Disclosure Rate</div>
+<div style="font-size: 2rem; font-weight: 900; color: {a_pass_color};">{a_disclosure_rate}%</div>
+<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{a_n_disclosure} of {a_n_total} responses</div>
+</div>
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid {a_fail_color};">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Failure Rate</div>
+<div style="font-size: 2rem; font-weight: 900; color: {a_fail_color};">{a_failure_rate}%</div>
+<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{a_n_fail} missing disclosures</div>
+</div>
+<div class="content-card" style="padding: 1.25rem; margin-bottom: 0; border-left: 4px solid #6366f1;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Total Evaluated</div>
+<div style="font-size: 2rem; font-weight: 900; color: #0f172a;">{a_n_total}</div>
+<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">{a_selected_model} · {a_selected_source}</div>
 </div>
 </div>
 """, unsafe_allow_html=True)
+
+            # --- Charts Row ---
+            chart_a1, chart_a2 = st.columns([3, 2])
+
+            with chart_a1:
+                model_stats = analyze_df.groupby('target_model')['label'].apply(
+                    lambda x: round((x == 'No disclosure').sum() / len(x) * 100, 1)
+                ).reset_index()
+                model_stats.columns = ['Model', 'Failure Rate (%)']
+                model_stats = model_stats.sort_values('Model')
+
+                bar_colors = ['#f97316' if m == a_selected_model else '#cbd5e1' for m in model_stats['Model']]
+
+                fig_bar = go.Figure(data=go.Bar(
+                    x=model_stats['Model'], y=model_stats['Failure Rate (%)'],
+                    marker=dict(color=bar_colors, line=dict(width=0), cornerradius=6),
+                    text=[f"{v}%" for v in model_stats['Failure Rate (%)']],
+                    textposition='outside', textfont=dict(size=12, color='#334155', family="'Inter', sans-serif")
+                ))
+                fig_bar.update_layout(
+                    title=dict(text="OVERALL FAILURE RATE BY MODEL", font=dict(size=13, color='#334155', family="'Inter', sans-serif")),
+                    yaxis=dict(title='Failure Rate (%)', range=[0, 100], gridcolor='#f1f5f9'),
+                    xaxis=dict(title=''),
+                    height=350, margin=dict(l=50, r=20, t=60, b=40),
+                    paper_bgcolor='white', plot_bgcolor='white',
+                    font_family="'Inter', sans-serif",
+                    annotations=[dict(text="Unit: Percentage (%)", xref="paper", yref="paper",
+                                      x=1, y=1.08, showarrow=False, font=dict(size=10, color='#94a3b8'))]
+                )
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+            with chart_a2:
+                st.markdown(f"""
+<div style="padding: 1.5rem;">
+<h4 style="margin: 0 0 1.5rem 0; font-size: 14px; font-weight: 800; color: #334155;">Metric Breakdown</h4>
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+<div style="text-align: center;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Disclosure</div>
+<div style="font-size: 1.8rem; font-weight: 900; color: #10b981;">{a_disclosure_rate}%</div>
+</div>
+<div style="text-align: center;">
+<div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">No Disclosure</div>
+<div style="font-size: 1.8rem; font-weight: 900; color: #ef4444;">{a_failure_rate}%</div>
+</div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+                fig_donut = go.Figure(data=[go.Pie(
+                    labels=['Disclosure', 'No Disclosure'],
+                    values=[a_n_disclosure, a_n_fail],
+                    hole=0.6, marker=dict(colors=['#10b981', '#ef4444']),
+                    textinfo='percent', textfont=dict(size=13, color='white', family="'Inter', sans-serif"),
+                    hovertemplate='%{label}: %{value} (%{percent})<extra></extra>'
+                )])
+                fig_donut.update_layout(
+                    height=220, margin=dict(l=20, r=20, t=10, b=10),
+                    paper_bgcolor='white', showlegend=False,
+                    annotations=[dict(text=f"<b>{a_n_total}</b><br>total", x=0.5, y=0.5,
+                                       font=dict(size=14, color='#334155', family="'Inter', sans-serif"),
+                                       showarrow=False)]
+                )
+                st.plotly_chart(fig_donut, use_container_width=True)
+
+            # --- Error Analysis Breakdown ---
+            st.markdown("""
+<div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; margin-bottom: 1rem;">
+<div style="background-color: #fef3c7; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+<span style="font-size: 1.5rem;">⚠️</span>
+</div>
+<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">3. Error Analysis Breakdown</h3>
+</div>
+""", unsafe_allow_html=True)
+
+            cross_stats = analyze_df.groupby(['target_model', 'dataset_source', 'label']).size().reset_index(name='count')
+            cross_totals = analyze_df.groupby(['target_model', 'dataset_source']).size().reset_index(name='total')
+            cross_stats = cross_stats.merge(cross_totals, on=['target_model', 'dataset_source'])
+            cross_stats['percentage'] = round(cross_stats['count'] / cross_stats['total'] * 100, 1)
+
+            fig_cross = px.bar(
+                cross_stats, x='dataset_source', y='percentage', color='label',
+                facet_col='target_model', facet_col_wrap=3,
+                color_discrete_map={'Disclosure': '#10b981', 'No disclosure': '#ef4444'},
+                labels={'dataset_source': 'Source', 'percentage': 'Percentage (%)'},
+                category_orders={
+                    'target_model': ['gemini', 'gpt', 'llama'],
+                    'dataset_source': ['sarai', 'human', 'syn']
+                },
+                barmode='group', height=400
+            )
+            fig_cross.update_layout(
+                paper_bgcolor='white', plot_bgcolor='white',
+                font_family="'Inter', sans-serif",
+                margin=dict(l=50, r=20, t=60, b=60),
+                legend_title_text='Label'
+            )
+            fig_cross.update_xaxes(matches=None, showticklabels=True, gridcolor='#f1f5f9')
+            fig_cross.update_yaxes(gridcolor='#f1f5f9', range=[0, 100])
+            fig_cross.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1].upper()))
+            st.plotly_chart(fig_cross, use_container_width=True)
+
+            # --- Failure Cases Table ---
+            fail_df = a_filtered[a_filtered['label'] == 'No disclosure'].head(50)
+            if not fail_df.empty:
+                st.markdown(f"""
+<div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; margin-bottom: 1rem;">
+<div style="background-color: #fee2e2; border-radius: 8px; padding: 0.5rem; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px;">
+<span style="font-size: 1.5rem;">🚨</span>
+</div>
+<h3 style="margin: 0; color: #0f172a; font-size: 1.5rem; font-weight: 800;">4. Failure Cases — Missing Disclosures ({len(fail_df)} shown)</h3>
+</div>
+""", unsafe_allow_html=True)
+                fig_fail_table = go.Figure(data=[go.Table(
+                    columnwidth=[250, 400],
+                    header=dict(
+                        values=['<b>Query</b>', '<b>Response (No Disclosure)</b>'],
+                        fill_color='#fef2f2', font=dict(size=11, color='#991b1b', family="'Inter', sans-serif"),
+                        align='left', height=40, line_color='#fecaca'
+                    ),
+                    cells=dict(
+                        values=[
+                            [f"<i>{str(q)[:150]}{'...' if len(str(q)) > 150 else ''}</i>" for q in fail_df['query']],
+                            [f"{str(r)[:500]}{'...' if len(str(r)) > 500 else ''}" for r in fail_df['response']]
+                        ],
+                        fill_color=[['#fff5f5'] * len(fail_df), ['#fff5f5'] * len(fail_df)],
+                        font=dict(size=11, family="'Inter', sans-serif", color='#475569'),
+                        align='left', height=55, line_color='#fecaca'
+                    )
+                )])
+                fig_fail_table.update_layout(
+                    height=max(300, min(len(fail_df) * 60, 600)),
+                    margin=dict(l=0, r=0, t=0, b=0), paper_bgcolor='white'
+                )
+                st.plotly_chart(fig_fail_table, use_container_width=True)
+
+        else:
+            st.info("No data found for the selected combination.")
+    else:
+        st.warning("Could not load evaluation_data.csv")
      
     if st.button("New Session"):
         st.session_state.highest_step = 0
         st.session_state.step = "Concept"
         st.rerun()
+
