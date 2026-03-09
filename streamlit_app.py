@@ -1093,15 +1093,21 @@ elif st.session_state.step == "Evaluate":
 </div>
 """, unsafe_allow_html=True)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Target Model</label>', unsafe_allow_html=True)
-            models = ['All'] + sorted(eval_df['target_model'].dropna().unique().tolist())
-            selected_model = st.radio("Model", models, horizontal=True, label_visibility="collapsed")
-        with col2:
-            st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dataset Source</label>', unsafe_allow_html=True)
-            sources = ['All'] + sorted(eval_df['dataset_source'].dropna().unique().tolist())
-            selected_source = st.radio("Source", sources, horizontal=True, label_visibility="collapsed")
+        with st.form("eval_scope_form", border=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Target Model</label>', unsafe_allow_html=True)
+                models = ['All'] + sorted(eval_df['target_model'].dropna().unique().tolist())
+                selected_model = st.radio("Model", models, horizontal=True, label_visibility="collapsed")
+            with col2:
+                st.markdown('<label style="font-weight: 700; font-size: 0.85rem; color: #475569;">Dataset Source</label>', unsafe_allow_html=True)
+                sources = ['All'] + sorted(eval_df['dataset_source'].dropna().unique().tolist())
+                selected_source = st.radio("Source", sources, horizontal=True, label_visibility="collapsed")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            submit_col, _ = st.columns([1, 4])
+            with submit_col:
+                submitted = st.form_submit_button("Generate", type="primary")
 
         # Auto-filter with All support
         filtered_df = eval_df.copy()
@@ -1110,7 +1116,7 @@ elif st.session_state.step == "Evaluate":
         if selected_source != 'All':
             filtered_df = filtered_df[filtered_df['dataset_source'] == selected_source]
 
-        if not filtered_df.empty:
+        if submitted and not filtered_df.empty:
             n_total = len(filtered_df)
 
             # --- Full Styled Data Table ---
@@ -1154,7 +1160,7 @@ elif st.session_state.step == "Evaluate":
             )
             st.plotly_chart(fig_full, use_container_width=True)
 
-        else:
+        elif submitted:
             st.info("No data found for the selected combination.")
                 
     else:
@@ -1201,7 +1207,7 @@ elif st.session_state.step == "Annotation":
 </div>""", unsafe_allow_html=True)
         selected_model = st.selectbox("Select Model", ["Gemini", "GPT"], label_visibility="collapsed")
         
-        if st.button("Start Annotation", type="primary", key="start_annotation_btn"):
+        if st.button("Start Annotation", type="secondary", key="start_annotation_btn"):
             st.session_state.annotation_started = True
 
     with col2:
