@@ -269,7 +269,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# Data Loading & Plotly Subplots (from sarai)
+# Data Loading & Plotly Subplots
 @st.cache_data
 def load_data(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
