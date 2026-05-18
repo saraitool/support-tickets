@@ -606,6 +606,9 @@ elif st.session_state.step == "Concept":
 <label style="font-weight: 700; font-size: 0.85rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Target Concept</label>
 </div>
 """, unsafe_allow_html=True)
+            
+            st.text_input("Target Concept", value="Medical Advice", key="target_concept_display", disabled=True, label_visibility="collapsed")
+
             # Concept Selection with Callback
             def update_concept_settings():
                 concept = st.session_state.target_concept
@@ -1547,7 +1550,7 @@ elif st.session_state.step == "Analysis":
             textfont=dict(size=13, family="'Inter', sans-serif"),
             showscale=show_colorbar,
             colorbar=dict(
-                title=dict(text="Rate (%)", font=dict(family="'Inter', sans-serif", size=13, color="#334155")),
+                title=dict(text="Rate (%)<br>", font=dict(family="'Inter', sans-serif", size=13, color="#334155"), side="top"),
                 thickness=14, len=0.75,
                 ticksuffix="%",
                 outlinewidth=0,
@@ -2224,7 +2227,7 @@ elif st.session_state.step == "Analysis":
                     z=hm.values, x=hm.columns.tolist(), y=hm.index.tolist(),
                     showscale=(i == 3),
                     colorbar=dict(
-                        title=dict(text="Rate (%)", font=dict(family="'Inter', sans-serif", size=12, color="#334155")),
+                        title=dict(text="Rate (%)<br>", font=dict(family="'Inter', sans-serif", size=12, color="#334155"), side="top"),
                         thickness=14, len=0.85, x=1.02, ticksuffix="%",
                         tickfont=dict(family="'Inter', sans-serif", size=11, color="#64748b"),
                         outlinewidth=0,
