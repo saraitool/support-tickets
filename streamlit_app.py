@@ -1560,7 +1560,7 @@ elif st.session_state.step == "Analysis":
         )
 
 
-    def style_heatmap_layout(fig, title_text, chart_height, left_margin=250):
+    def style_heatmap_layout(fig, title_text, chart_height, left_margin=350):
         """Apply consistent layout styling to heatmap figures."""
         fig.update_layout(
             title=dict(
@@ -2204,7 +2204,7 @@ elif st.session_state.step == "Analysis":
             df_med_plot_cleaned["extracted_occupations"].apply(clean_med_occupations)
         )
 
-    def build_interaction_subplot(heatmaps, all_rows, all_cols, title_text, left_margin=260):
+    def build_interaction_subplot(heatmaps, all_rows, all_cols, title_text, left_margin=350):
         """Build a 4-panel interaction heatmap subplot."""
         subplot_titles = (
             "<b>(a)</b> Claude 4.5 Haiku",
