@@ -1220,7 +1220,7 @@ elif st.session_state.step == "Evaluation":
     @st.cache_data
     def load_eval_data():
         try:
-            return pd.read_csv("evaluation_data.csv")
+            return pd.read_csv("evaluation_data_2.csv")
         except FileNotFoundError:
             return pd.DataFrame()
             
@@ -1262,7 +1262,6 @@ elif st.session_state.step == "Evaluation":
 
         # Auto-filter
         filtered_df = eval_df.copy()
-        filtered_df = filtered_df[filtered_df['dataset_source'] == 'nodesynth']
         if selected_model != 'All':
             filtered_df = filtered_df[filtered_df['target_model'] == selected_model]
 
@@ -1303,7 +1302,7 @@ elif st.session_state.step == "Evaluation":
                 st.download_button(
                     label="📥 Download Evaluation Data (CSV)",
                     data=csv_data,
-                    file_name='evaluation_data.csv',
+                    file_name='evaluation_data_2.csv',
                     mime='text/csv',
                     use_container_width=True
                 )
@@ -1325,7 +1324,7 @@ elif st.session_state.step == "Evaluation":
             st.info("No data found for the selected combination.")
                 
     else:
-        st.warning("Could not load evaluation_data.csv")
+        st.warning("Could not load evaluation_data_2.csv")
 
     if st.button("Next: Define Autorator", type="primary"):
         st.session_state.highest_step = max(st.session_state.highest_step, 5)
@@ -1427,7 +1426,7 @@ Classification:"""
 """, unsafe_allow_html=True)
         if st.session_state.get("annotation_started", False):
             try:
-                eval_df = pd.read_csv("evaluation_data.csv")
+                eval_df = pd.read_csv("evaluation_data_2.csv")
                 display_df = eval_df.iloc[:, :5].copy()
                 
                 def clean_query(q):
@@ -1455,7 +1454,7 @@ Classification:"""
                 )
                 
             except FileNotFoundError:
-                st.error("evaluation_data.csv not found.")
+                st.error("evaluation_data_2.csv not found.")
         else:
             st.info("Click 'Rate' on the left to load the feedback data.")
 
