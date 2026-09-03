@@ -42,8 +42,8 @@ source "$VENV_DIR/bin/activate"
 
 # ── 2. Dependency Installation ────────────────────────────────────────────────
 echo "[3/4] Installing / verifying dependencies from requirements.txt..."
-pip install --quiet --upgrade pip
-pip install --quiet -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
 
 # ── 3. Gemini API Key Configuration (Secure - No Logging) ────────────────────
 echo "[4/4] Configuring Gemini API Key..."
