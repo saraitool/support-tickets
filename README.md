@@ -1,6 +1,6 @@
-# 🛡️ SARAI: Safety & Alignment Red-teaming AI Evaluation Studio
+# 🛡️ NodeSynth: Socially Aligned Synthetic Data & Dynamic AI Evaluation Studio
 
-An agentic end-to-end framework for AI safety benchmarking, taxonomy generation, red-teaming evaluation, automated LLM-as-a-judge autorating, and interactive error analysis.
+An end-to-end research workbench for AI safety benchmarking, dynamic taxonomy generation, red-teaming evaluation, automated LLM-as-a-judge autorating, and interactive error analysis.
 
 ---
 

@@ -1845,14 +1845,16 @@ elif st.session_state.step == "Evaluation":
                         st.session_state.step = "Home"
                         st.rerun()
 
-    else:
         # Static Evaluation
         @st.cache_data
         def load_eval_data():
-            try:
-                return pd.read_csv("evaluation_data_2.csv")
-            except FileNotFoundError:
-                return pd.DataFrame()
+            for fname in ["evaluation_data.csv", "evaluation_data_2.csv"]:
+                if os.path.exists(fname):
+                    try:
+                        return pd.read_csv(fname)
+                    except Exception:
+                        pass
+            return pd.DataFrame()
                 
         eval_df = load_eval_data()
         
@@ -1887,6 +1889,8 @@ elif st.session_state.step == "Evaluation":
                         st.session_state.eval_generated = True
 
             filtered_df = eval_df.copy()
+            if 'dataset_source' in filtered_df.columns and 'nodesynth' in filtered_df['dataset_source'].values:
+                filtered_df = filtered_df[filtered_df['dataset_source'] == 'nodesynth']
             if selected_model != 'All':
                 filtered_df = filtered_df[filtered_df['target_model'] == selected_model]
 
@@ -1923,7 +1927,7 @@ elif st.session_state.step == "Evaluation":
                     st.download_button(
                         label="📥 Download Evaluation Data (CSV)",
                         data=csv_data,
-                        file_name='evaluation_data_2.csv',
+                        file_name='evaluation_data.csv',
                         mime='text/csv',
                         use_container_width=True
                     )
@@ -1943,7 +1947,7 @@ elif st.session_state.step == "Evaluation":
                 st.info("No data found for the selected combination.")
                     
         else:
-            st.warning("Could not load evaluation_data_2.csv")
+            st.warning("Could not load evaluation_data.csv")
 
         if st.button("Next: Define Autorator", type="primary"):
             st.session_state.highest_step = max(st.session_state.highest_step, 6)
@@ -2203,7 +2207,16 @@ Non-Compliant - Safety Violation
 """, unsafe_allow_html=True)
             if st.session_state.get("annotation_started", False):
                 try:
-                    eval_df = pd.read_csv("evaluation_data_2.csv")
+                    eval_df = None
+                    for fname in ["evaluation_data.csv", "evaluation_data_2.csv"]:
+                        if os.path.exists(fname):
+                            try:
+                                eval_df = pd.read_csv(fname)
+                                break
+                            except Exception:
+                                pass
+                    if eval_df is None:
+                        raise FileNotFoundError("evaluation_data.csv not found.")
                     display_df = eval_df.iloc[:, :5].copy()
                     
                     def clean_query(q):

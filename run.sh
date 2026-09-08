@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# SARAI: Safety & Alignment Red-teaming AI Evaluation Studio
+# NodeSynth: Socially Aligned Synthetic Data & Dynamic AI Evaluation Studio
 # Startup & Dependency Installation Script
 # ==============================================================================
 
@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "============================================================"
-echo "🛡️  SARAI Evaluation Studio: Setup & Launch"
+echo "🛡️  NodeSynth Dynamic Evaluation Studio: Setup & Launch"
 echo "============================================================"
 
 # ── 1. Python & Virtual Environment Setup ─────────────────────────────────────
@@ -127,7 +127,7 @@ LOCAL_URL="http://localhost:${APP_PORT}"
 
 echo ""
 echo "============================================================"
-echo "🚀 SARAI Evaluation Studio is launching!"
+echo "🚀 NodeSynth Dynamic Evaluation Studio is launching!"
 echo "📍 Local Web URL: ${LOCAL_URL}"
 echo "   Opening browser automatically..."
 echo "   (Press Ctrl+C to stop the server)"
