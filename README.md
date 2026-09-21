@@ -1,4 +1,4 @@
-# 🛡️ NodeSynth: Socially Aligned Synthetic Data & Dynamic AI Evaluation Studio
+# 🛡️ NodeSyn: Socially Aligned Synthetic Data & Dynamic AI Evaluation Studio
 
 An end-to-end research workbench for AI safety benchmarking, dynamic taxonomy generation, red-teaming evaluation, automated LLM-as-a-judge autorating, and interactive error analysis.
 
